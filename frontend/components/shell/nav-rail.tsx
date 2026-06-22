@@ -1,0 +1,63 @@
+"use client";
+
+import { Activity, BellRing, FileCheck2, FlaskConical, Gauge, Lightbulb, ListChecks, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useAlerts, useMissions } from "@/lib/hooks";
+import { cn } from "@/lib/utils";
+import { Tooltip } from "@/components/forge/primitives";
+
+export function NavRail() {
+  const pathname = usePathname();
+  const { data } = useMissions();
+  const { data: alertData } = useAlerts(8000);
+  const openAlerts = alertData?.alerts.length ?? 0;
+  const active = data?.missions.find((m) => m.is_active);
+  const primary = active?.id ?? data?.missions[0]?.id;
+  const m = (tab: string) => (primary ? `/missions/${primary}?tab=${tab}` : "/missions");
+
+  const items = [
+    { href: "/missions", icon: Gauge, label: "Missions", match: (p: string) => p === "/missions", badge: 0 },
+    { href: "/alerts", icon: BellRing, label: "MAIA Alerts", match: (p: string) => p === "/alerts", badge: openAlerts },
+    { href: primary ? `/missions/${primary}` : "/missions", icon: Activity, label: "Active Recovery", match: (p: string) => p.startsWith("/missions/"), badge: 0 },
+    { href: m("evidence"), icon: ListChecks, label: "Evidence", match: () => false, badge: 0 },
+    { href: m("contract"), icon: FileCheck2, label: "Approvals", match: () => false, badge: 0 },
+    { href: m("outcome"), icon: Lightbulb, label: "Knowledge", match: () => false, badge: 0 },
+    { href: "/system", icon: ShieldCheck, label: "System Health", match: (p: string) => p === "/system", badge: 0 },
+  ];
+
+  return (
+    <nav aria-label="Primary" className="flex w-14 shrink-0 flex-col items-center gap-1 border-r border-line bg-raised py-3">
+      <Link href="/" aria-label="Verified Recovery Agent home" className="mb-3 grid h-9 w-9 place-items-center rounded-[10px] bg-brand-soft text-brand">
+        <FlaskConical className="h-4 w-4" />
+      </Link>
+      {items.map((it) => {
+        const isActive = it.match(pathname);
+        return (
+          <Tooltip key={it.label} content={it.label}>
+            <Link
+              href={it.href}
+              aria-label={it.label}
+              aria-current={isActive ? "page" : undefined}
+              className={cn(
+                "relative grid h-10 w-10 place-items-center rounded-[10px] transition-colors duration-150",
+                isActive ? "bg-surface-2 text-agent" : "text-ink-mut hover:text-ink hover:bg-surface-2",
+              )}
+            >
+              {isActive && <span className="absolute -left-3 h-5 w-[3px] rounded-pill bg-agent" aria-hidden />}
+              <it.icon className="h-[18px] w-[18px]" />
+              {it.badge > 0 && (
+                <span
+                  className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-warning px-1 text-[10px] font-semibold text-black"
+                  aria-label={`${it.badge} open`}
+                >
+                  {it.badge}
+                </span>
+              )}
+            </Link>
+          </Tooltip>
+        );
+      })}
+    </nav>
+  );
+}

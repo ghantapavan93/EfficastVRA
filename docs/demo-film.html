@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Verified Recovery Agent — recovery trajectory film</title>
+<style>
+  :root{
+    --canvas:#0c0e13; --surface:#12151c; --line:#222834; --line2:#2c3342;
+    --ink:#e8edf6; --ink-mut:#9aa6b8; --ink-faint:#5d6b80;
+    --agent:#4c7dff; --coral:#d85a30; --amber:#ba7517; --red:#ff5d5d; --green:#2dd4a7; --steel:#888780;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--canvas);color:var(--ink);font-family:var(--sans);
+    display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px}
+  .film{width:760px;max-width:100%;background:var(--surface);border:1px solid var(--line);
+    border-radius:16px;padding:24px 26px}
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+  .kicker{font-size:13px;color:var(--ink-mut)}
+  .cyc{font-family:var(--mono);font-size:12px;color:var(--ink-faint);margin-left:8px}
+  .phase{font-size:12px;font-weight:600;padding:3px 10px;border-radius:8px;
+    background:rgba(76,125,255,.16);color:#9db8ff}
+  .conf-row{display:flex;align-items:center;gap:12px;margin:12px 0}
+  .conf-lab{font-size:12px;color:var(--ink-mut);min-width:150px}
+  .track{flex:1;height:8px;border-radius:999px;background:#1a1f29;overflow:hidden}
+  .fill{height:100%;width:40%;border-radius:999px;background:var(--agent);
+    transition:width .25s ease,background .25s ease}
+  .confnum{font-family:var(--mono);font-size:14px;font-weight:600;min-width:44px;text-align:right}
+  .cap{font-size:14px;line-height:1.6;margin:2px 0 14px;color:var(--ink-mut);min-height:44px}
+  button{font:inherit;font-size:13px;color:var(--ink);background:transparent;border:1px solid var(--line2);
+    border-radius:10px;padding:8px 14px;cursor:pointer}
+  button:hover{background:#1a1f29}
+  .note{font-size:11px;color:var(--ink-faint);margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+</style>
+</head>
+<body>
+<main class="film">
+  <h1 class="sr-only">Verified Recovery Agent recovery trajectory: vibration looks recovered through cycle 16, fault F27 recurs at cycle 17 collapsing agent confidence, the incident reopens for a bearing replacement, then 30 stable cycles verify recovery.</h1>
+  <div class="top">
+    <div><span class="kicker">Verified Recovery · live trajectory</span><span class="cyc" id="cyc">W1 · cycle 1</span></div>
+    <span class="phase" id="phase">Monitoring</span>
+  </div>
+  <svg width="100%" viewBox="0 0 700 210" role="img" aria-label="Vibration trajectory across two verification windows with a fault recurrence at cycle 17.">
+    <text x="34" y="28" text-anchor="end" font-size="11" fill="#5d6b80" font-family="var(--mono)">8</text>
+    <text x="34" y="100" text-anchor="end" font-size="11" fill="#5d6b80" font-family="var(--mono)">4</text>
+    <text x="34" y="172" text-anchor="end" font-size="11" fill="#5d6b80" font-family="var(--mono)">0</text>
+    <line x1="46" y1="96" x2="660" y2="96" stroke="#888780" stroke-width="1" stroke-dasharray="4 5"/>
+    <text x="660" y="90" text-anchor="end" font-size="11" fill="#888780" font-family="var(--mono)">threshold 4.0 mm/s</text>
+    <line x1="46" y1="168" x2="660" y2="168" stroke="#2c3342" stroke-width="1"/>
+    <polyline id="line" points="" fill="none" stroke="#d85a30" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle id="head" cx="46" cy="112" r="4" fill="#4c7dff"/>
+    <text id="fault" x="0" y="0" text-anchor="middle" font-size="11" font-weight="600" fill="#ff5d5d" font-family="var(--mono)" style="opacity:0">F27</text>
+    <text x="353" y="204" text-anchor="middle" font-size="11" fill="#5d6b80">vibration mm/s · two verification windows · 30 stable cycles required to close</text>
+  </svg>
+  <div class="conf-row">
+    <span class="conf-lab">Agent recovery confidence</span>
+    <div class="track"><div class="fill" id="conf"></div></div>
+    <span class="confnum" id="confnum" style="color:#4c7dff">40%</span>
+  </div>
+  <p class="cap" id="cap" aria-live="polite">Intervention completed. A finished work order is not yet proof of recovery — monitoring begins.</p>
+  <button id="replay">↻ Replay</button>
+  <div class="note">Independent Efficast-aligned prototype · synthetic data · the agent proposes; a deterministic evaluator judges recovery and a policy gateway authorises every action.</div>
+</main>
+<script>
+(function(){
+  var X0=46,X1=660,Y0=168,SCALE=18;
+  var line=document.getElementById('line'),head=document.getElementById('head'),fault=document.getElementById('fault'),
+      conf=document.getElementById('conf'),confnum=document.getElementById('confnum'),cap=document.getElementById('cap'),
+      phase=document.getElementById('phase'),cyc=document.getElementById('cyc'),replay=document.getElementById('replay');
+  var COL={monitor:'#4c7dff',relapse:'#ff5d5d',reopen:'#ba7517',monitor2:'#4c7dff',verified:'#2dd4a7'};
+  var PB={monitor:['rgba(76,125,255,.16)','#9db8ff','Monitoring'],relapse:['rgba(255,93,93,.16)','#ff9c9c','Contract violated'],
+          reopen:['rgba(186,117,23,.18)','#e0b063','Reopened'],monitor2:['rgba(76,125,255,.16)','#9db8ff','Monitoring · window 2'],
+          verified:['rgba(45,212,167,.16)','#7fe6cc','Verified recovery']};
+  var f=[],c;
+  for(c=1;c<=16;c++) f.push({lab:'W1 · cycle '+c,vib:+(3.62-0.012*c).toFixed(2),conf:Math.min(0.54,0.40+0.009*c),ph:'monitor',cap:'Monitoring — early cycles look like recovery. The agent holds judgement; early stability is not proof.',fault:false});
+  f.push({lab:'W1 · cycle 17',vib:6.8,conf:0.05,ph:'relapse',cap:'Cycle 17 — fault F27 recurred. Recovery contract violated. Work completed, recovery not proven.',fault:true});
+  f.push({lab:'reopened',vib:5.2,conf:0.10,ph:'reopen',cap:'Incident reopened automatically. Drive-end bearing (BR-6205) contingency approved by a supervisor.',fault:false});
+  f.push({lab:'bearing replaced',vib:3.4,conf:0.30,ph:'reopen',cap:'Bearing replaced. A second verification window opens — the clock restarts at zero stable cycles.',fault:false});
+  for(c=1;c<=29;c++) f.push({lab:'W2 · cycle '+c,vib:+(3.20-0.003*c).toFixed(2),conf:Math.min(0.85,0.45+0.014*c),ph:'monitor2',cap:'Second window — 30 consecutive stable cycles required, with no F27 recurrence.',fault:false});
+  f.push({lab:'W2 · cycle 30',vib:3.11,conf:0.97,ph:'verified',cap:'30 stable cycles completed, every condition passed, quality released. Recovery verified.',fault:false});
+  var N=f.length;
+  function xOf(i){return X0+i*((X1-X0)/(N-1));}
+  function yOf(v){return Y0-v*SCALE;}
+  var i=0,timer=null;
+  function draw(){
+    var pts='';for(var k=0;k<=i;k++){pts+=xOf(k).toFixed(1)+','+yOf(f[k].vib).toFixed(1)+' ';}
+    line.setAttribute('points',pts.trim());
+    var fr=f[i],col=COL[fr.ph];
+    head.setAttribute('cx',xOf(i).toFixed(1));head.setAttribute('cy',yOf(fr.vib).toFixed(1));head.setAttribute('fill',col);head.setAttribute('r',fr.ph==='relapse'?6:4);
+    if(fr.fault){fault.setAttribute('x',xOf(i).toFixed(1));fault.setAttribute('y',(yOf(fr.vib)-12).toFixed(1));fault.style.opacity=1;}else{fault.style.opacity=0;}
+    var pct=Math.round(fr.conf*100);conf.style.width=pct+'%';conf.style.background=col;confnum.textContent=pct+'%';confnum.style.color=col;
+    cap.textContent=fr.cap;cyc.textContent=fr.lab;var pb=PB[fr.ph];phase.textContent=pb[2];phase.style.background=pb[0];phase.style.color=pb[1];
+  }
+  function delay(){var p=f[i].ph;return p==='relapse'?1200:p==='verified'?1800:p==='reopen'?760:135;}
+  function tick(){draw();i++;if(i<N){timer=setTimeout(tick,delay());}else{timer=setTimeout(function(){i=0;tick();},2000);}}
+  function start(){if(timer)clearTimeout(timer);i=0;tick();}
+  replay.addEventListener('click',start);
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){i=N-1;draw();}else{start();}
+})();
+</script>
+</body>
+</html>

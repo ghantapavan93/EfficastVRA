@@ -1,0 +1,52 @@
+# Production-shaped profile: PostgreSQL (pgvector image) + backend + frontend.
+# The zero-infra default (SQLite, no Docker) remains the primary verified path — see README.
+#
+#   docker compose up --build
+#   open http://localhost:3000
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: vra
+      POSTGRES_PASSWORD: vra
+      POSTGRES_DB: vra
+    ports:
+      - "5432:5432"
+    volumes:
+      - vra_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vra -d vra"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  backend:
+    build: ./backend
+    environment:
+      VRA_DATABASE_URL: postgresql+psycopg://vra:vra@db:5432/vra
+      VRA_DEMO_MODE: "1"
+      VRA_FRONTEND_ORIGIN: http://localhost:3000
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)\""]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  frontend:
+    build: ./frontend
+    environment:
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
+volumes:
+  vra_pgdata:

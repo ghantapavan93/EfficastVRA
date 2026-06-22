@@ -1,0 +1,153 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ───────────────────────── FORGE SYSTEM tokens ───────────────────────── */
+:root {
+  /* surfaces — warm graphite, not pure black */
+  --forge-bg: #0a0c10;
+  --forge-bg-raised: #0e1116;
+  --surface-1: #12151c;
+  --surface-2: #171b23;
+  --surface-3: #1e232c;
+  --scrim: rgba(6, 8, 11, 0.72);
+
+  /* lines */
+  --line: #222834;
+  --line-strong: #323a48;
+  --grid: rgba(120, 140, 170, 0.05);
+
+  /* text */
+  --text-hi: #eef2f8;
+  --text: #c2cad6;
+  --text-mut: #8a93a3;
+  --text-faint: #5c6573;
+
+  /* brand + signal */
+  --brand: #f5a524;
+  --brand-press: #d98a12;
+  --brand-soft: rgba(245, 165, 36, 0.14);
+  --agent: #4c7dff;
+  --agent-soft: rgba(76, 125, 255, 0.16);
+  --verified: #2dd4a7;
+  --verified-soft: rgba(45, 212, 167, 0.14);
+  --pending: #fbbf24;
+  --pending-soft: rgba(251, 191, 36, 0.14);
+  --warning: #fb923c;
+  --warning-soft: rgba(251, 146, 60, 0.14);
+  --failure: #ff5d5d;
+  --failure-soft: rgba(255, 93, 93, 0.15);
+  --approval: #8b7dff;
+  --approval-soft: rgba(139, 125, 255, 0.16);
+  --evidence: #34d3d3;
+  --evidence-soft: rgba(52, 211, 211, 0.14);
+  --muted: #6b7686;
+
+  /* type */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, "Inter", sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", "Cascadia Mono", Menlo, Consolas,
+    monospace;
+
+  /* motion */
+  --t-instant: 100ms;
+  --t-fast: 170ms;
+  --t-standard: 260ms;
+  --t-emphasis: 520ms;
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+  html,
+  body {
+    background: var(--forge-bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    font-feature-settings: "cv11", "ss01";
+  }
+  ::selection {
+    background: var(--agent-soft);
+    color: var(--text-hi);
+  }
+  /* Always-visible focus ring (accessibility) */
+  :focus-visible {
+    outline: 2px solid var(--agent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #20262f;
+    border-radius: 999px;
+    border: 2px solid var(--forge-bg);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2b3340;
+  }
+  h1, h2, h3 {
+    color: var(--text-hi);
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer components {
+  .mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+  .label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-mut);
+  }
+  /* low-contrast technical grid motif */
+  .grid-motif {
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  .card-2 {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+  .hairline {
+    border-color: var(--line);
+  }
+  .skeleton {
+    background: linear-gradient(90deg, var(--surface-1) 25%, var(--surface-2) 37%, var(--surface-1) 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+}
+
+/* Respect reduced motion: remove trajectory/morph animation, keep state visible. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
