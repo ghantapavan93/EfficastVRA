@@ -1,14 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { AlertOctagon, Bot, CheckCircle2, FileSignature, Gavel, RotateCcw, Workflow } from "lucide-react";
+import { AlertOctagon, Bot, CheckCircle2, FileSignature, Gavel, RotateCcw, ShieldAlert, ShieldCheck, Workflow } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { announce } from "@/lib/announce";
-import { useTimeline } from "@/lib/hooks";
+import { useAudit, useTimeline } from "@/lib/hooks";
 import type { TimelineCycle } from "@/lib/types";
 import { cn, fmtClock } from "@/lib/utils";
 import { RecoveryTrajectory } from "@/components/charts/recovery-trajectory";
-import { Chip, SectionLabel } from "@/components/forge/primitives";
+import { ForecastPanel } from "@/components/timeline/forecast-panel";
+import { Badge, Chip, SectionLabel } from "@/components/forge/primitives";
 import { ErrorState, LoadingState } from "@/components/forge/states";
 
 type Metric = "vibration" | "temperature" | "cycle_time" | "scrap_pct";
@@ -27,6 +28,27 @@ const TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   APPROVAL_RECORDED: Gavel,
   RECOVERY_VERIFIED: CheckCircle2,
 };
+
+function AuditIntegrityBadge({ incidentId }: { incidentId: string }) {
+  const { data } = useAudit(incidentId);
+  const integrity = data?.integrity;
+  if (!integrity) return null;
+  if (integrity.ok)
+    return (
+      <span title={`Hash chain verified across ${integrity.count} audit entries`}>
+        <Badge tone="verified">
+          <ShieldCheck className="h-3 w-3" aria-hidden /> tamper-evident · verified
+        </Badge>
+      </span>
+    );
+  return (
+    <span title={`Chain broken at seq ${integrity.broken_at_seq}`}>
+      <Badge tone="failure">
+        <ShieldAlert className="h-3 w-3" aria-hidden /> audit tampering detected
+      </Badge>
+    </span>
+  );
+}
 
 export function VerificationTimeline({ incidentId }: { incidentId: string }) {
   const { data, isLoading, isError, refetch } = useTimeline(incidentId, 3000);
@@ -50,6 +72,8 @@ export function VerificationTimeline({ incidentId }: { incidentId: string }) {
 
   return (
     <div className="space-y-5">
+      <ForecastPanel incidentId={incidentId} />
+
       {/* trajectory */}
       <section className="rounded-xl border border-line bg-surface-1 p-4">
         <div className="mb-3 flex items-center justify-between">
@@ -94,7 +118,10 @@ export function VerificationTimeline({ incidentId }: { incidentId: string }) {
 
       {/* event spine */}
       <section>
-        <SectionLabel className="mb-3">Verification events</SectionLabel>
+        <div className="mb-3 flex items-center justify-between">
+          <SectionLabel>Verification events</SectionLabel>
+          <AuditIntegrityBadge incidentId={incidentId} />
+        </div>
         <ol className="relative space-y-1 border-l border-line pl-5">
           {data.events.map((e) => {
             const Icon = TYPE_ICON[e.type] ?? Bot;

@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import math
 import re
+from functools import lru_cache
 
 DIM = 256
 _TOKEN = re.compile(r"[a-z0-9]+")
@@ -19,7 +20,10 @@ def tokenize(text: str) -> list[str]:
     return [t for t in _TOKEN.findall(text.lower()) if len(t) > 2]
 
 
+@lru_cache(maxsize=2048)
 def embed(text: str) -> list[float]:
+    """Cached: the agent issues many repeated/near-identical queries; recomputing is wasteful.
+    The returned vector is read-only by all callers (cosine), so sharing the cached list is safe."""
     vec = [0.0] * DIM
     for tok in tokenize(text):
         h = int(hashlib.md5(tok.encode()).hexdigest(), 16)  # noqa: S324 (non-crypto use)

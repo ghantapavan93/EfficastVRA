@@ -54,9 +54,64 @@ export function useReasoning(id: string, refetchInterval?: number) {
   });
 }
 
+export function useTroubleshoot(params: { fault_code?: string; machine_model?: string; q?: string }) {
+  const enabled = Boolean(params.fault_code || params.machine_model || params.q);
+  return useQuery({
+    queryKey: ["troubleshoot", params],
+    queryFn: () => api.troubleshoot(params),
+    enabled,
+  });
+}
+
+export function useForecast(id: string, refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({
+    queryKey: ["forecast", id, username],
+    queryFn: () => api.forecast(id),
+    refetchInterval,
+  });
+}
+
+export function useDecision(id: string, refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({
+    queryKey: ["decision", id, username],
+    queryFn: () => api.decision(id),
+    refetchInterval,
+  });
+}
+
 export function useAlerts(refetchInterval?: number) {
   const { username } = useRole();
   return useQuery({ queryKey: ["alerts", username], queryFn: api.alerts, refetchInterval });
+}
+
+export function useKnowledge(refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({ queryKey: ["knowledge", username], queryFn: api.knowledge, refetchInterval });
+}
+
+export function useReviewKnowledge() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; decision: string; reason?: string }) =>
+      api.reviewKnowledge(v.id, { decision: v.decision, reason: v.reason }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["knowledge"] }),
+  });
+}
+
+export function useNotifications(refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({ queryKey: ["notifications", username], queryFn: api.notifications, refetchInterval });
+}
+
+export function useMarkNotificationRead() {
+  const qc = useQueryClient();
+  const { username } = useRole();
+  return useMutation({
+    mutationFn: (id: string) => api.markNotificationRead(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications", username] }),
+  });
 }
 
 export function useDiagnosis(id: string, refetchInterval?: number) {
@@ -84,7 +139,7 @@ export function useTriageAlert() {
 export function useRecoveryActions(id: string) {
   const qc = useQueryClient();
   const invalidate = () => {
-    for (const key of ["missions", "mission", "contract", "evidence", "timeline", "outcome", "audit", "reasoning", "diagnosis", "alerts"]) {
+    for (const key of ["missions", "mission", "contract", "evidence", "timeline", "outcome", "audit", "reasoning", "diagnosis", "alerts", "forecast"]) {
       qc.invalidateQueries({ queryKey: key === "missions" ? ["missions"] : [key, id] });
     }
   };

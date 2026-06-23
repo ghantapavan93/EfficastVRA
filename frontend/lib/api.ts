@@ -1,14 +1,21 @@
 import type {
+  AppNotification,
   AuditEvent,
+  AuditIntegrity,
   ContractView,
+  DecisionView,
   DiagnosisView,
+  ForecastView,
+  KnowledgeList,
   MaiaAlert,
   Me,
   MissionDetail,
   MissionSummary,
+  NotificationsView,
   OutcomeView,
   ReasoningView,
   TimelineView,
+  TroubleshootResult,
 } from "./types";
 
 // The active principal's username, sent as X-VRA-User. The role provider keeps this in sync.
@@ -70,8 +77,23 @@ export const api = {
   ),
   timeline: (id: string) => req<TimelineView>(`/api/incidents/${id}/timeline`),
   outcome: (id: string) => req<OutcomeView>(`/api/incidents/${id}/outcome`),
-  audit: (id: string) => req<{ events: AuditEvent[] }>(`/api/incidents/${id}/audit`),
+  audit: (id: string) =>
+    req<{ events: AuditEvent[]; integrity: AuditIntegrity }>(`/api/incidents/${id}/audit`),
+  knowledge: () => req<KnowledgeList>("/api/knowledge"),
+  reviewKnowledge: (id: string, body: { decision: string; reason?: string }) =>
+    post(`/api/knowledge/${id}/review`, body),
+  notifications: () => req<NotificationsView>("/api/notifications"),
+  markNotificationRead: (id: string) => post(`/api/notifications/${id}/read`),
   reasoning: (id: string) => req<ReasoningView>(`/api/incidents/${id}/reasoning`),
+  forecast: (id: string) => req<ForecastView>(`/api/incidents/${id}/forecast`),
+  decision: (id: string) => req<DecisionView>(`/api/incidents/${id}/decision`),
+  troubleshoot: (p: { fault_code?: string; machine_model?: string; q?: string }) => {
+    const qs = new URLSearchParams();
+    if (p.fault_code) qs.set("fault_code", p.fault_code);
+    if (p.machine_model) qs.set("machine_model", p.machine_model);
+    if (p.q) qs.set("q", p.q);
+    return req<TroubleshootResult>(`/api/troubleshoot?${qs.toString()}`);
+  },
   alerts: () => req<{ alerts: MaiaAlert[]; environment: string }>("/api/alerts"),
   diagnosis: (id: string) => req<DiagnosisView>(`/api/incidents/${id}/diagnosis`),
 

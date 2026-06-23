@@ -9,6 +9,7 @@ import { Badge, Chip } from "@/components/forge/primitives";
 import { ErrorState, LoadingState } from "@/components/forge/states";
 import { ActionBar } from "@/components/mission/action-bar";
 import { AgentReasoning } from "@/components/mission/agent-reasoning";
+import { DecisionPanel } from "@/components/mission/decision-panel";
 import { DiagnosisPanel } from "@/components/mission/diagnosis-panel";
 import { ContingencyCompare } from "@/components/mission/contingency-compare";
 import { MissionHeader } from "@/components/mission/mission-header";
@@ -41,6 +42,7 @@ function MissionDetail({ id }: { id: string }) {
     { key: "overview", label: "Overview" },
     ...(m.origin_alert_id ? [{ key: "diagnosis", label: "Agent Diagnosis" }] : []),
     { key: "reasoning", label: "Agent Reasoning" },
+    { key: "decision", label: "Decision Intelligence" },
     { key: "contract", label: "Recovery Contract" },
     { key: "evidence", label: "Evidence" },
     { key: "timeline", label: "Verification Timeline" },
@@ -82,6 +84,7 @@ function MissionDetail({ id }: { id: string }) {
         {tab === "overview" && <Overview m={m} />}
         {tab === "diagnosis" && <DiagnosisPanel incidentId={id} />}
         {tab === "reasoning" && <AgentReasoning incidentId={id} />}
+        {tab === "decision" && <DecisionPanel incidentId={id} />}
         {tab === "contract" && <ContractPanel incidentId={id} />}
         {tab === "evidence" && <EvidenceQueue incidentId={id} />}
         {tab === "timeline" && <VerificationTimeline incidentId={id} />}

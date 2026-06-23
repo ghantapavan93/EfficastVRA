@@ -43,9 +43,10 @@ from app.gateway import execute as gateway_execute
 from app.reasoning import get_reasoning_provider
 from app.seed.northstar import IDS
 from app.services import cycle_engine
+from app.services import notifications as notify
 from app.services.evaluator import EvaluationResult, evaluate
 from app.services.evidence import missing_required
-from app.services.policy import should_reopen
+from app.services.policy import should_escalate, should_reopen
 from app.services.windows import open_window
 from app.workflow.audit import publish_outbox, record_audit
 from app.workflow.contract_builder import persist_contract
@@ -157,6 +158,10 @@ class RecoveryService:
                      incident_id=incident.id, detail={"diagnosis": diagnosis},
                      model_version=self.reasoning.id, prompt_version=self.reasoning.prompt_version)
         self.port.acknowledge_alert(alert.id, incident_id=incident.id)
+        notify.dispatch(self.session, to_role=Role.SUPERVISOR, kind="diagnosis_proposed",
+                        title=f"Diagnosis ready for {incident.id}",
+                        body=f"The agent triaged {alert.id} and proposed {rec['title']}. Your acceptance is needed.",
+                        incident=incident, action_path=f"/missions/{incident.id}?tab=diagnosis")
         self.session.flush()
         return incident
 
@@ -210,6 +215,14 @@ class RecoveryService:
         # Agent requests the missing required evidence (through the gateway).
         self._gw(incident, "request_missing_evidence", {"contract_id": contract.id},
                  self._agent(incident), idem=f"req-evi-{contract.id}")
+        notify.dispatch(self.session, to_role=Role.SUPERVISOR, kind="approval_required",
+                        title=f"Review recovery contract {contract.contract_no}",
+                        body="The agent drafted the recovery conditions. Review and approve to begin monitoring.",
+                        incident=incident, action_path=f"/missions/{incident.id}?tab=contract")
+        notify.dispatch(self.session, to_role=Role.TECHNICIAN, kind="evidence_required",
+                        title=f"Evidence required for {incident.id}",
+                        body="Submit the post-intervention measurement and completion sign-off.",
+                        incident=incident, action_path=f"/missions/{incident.id}?tab=evidence")
         self.session.flush()
         return contract
 
@@ -281,11 +294,21 @@ class RecoveryService:
                            "vibration": _obs.vibration, "temperature": _obs.temperature,
                            "cycle_time": _obs.cycle_time})
             if result.verdict == "violated" and should_reopen(contract, result):
-                # Agent reflects (reasoning) *before* the gateway reopens (action).
+                # Agent reflects (reasoning) *before* the gateway acts.
                 graph.observe(incident, contract, result, cycle=_obs.cycle_index)
+                # Policy: after enough failures, escalate to plant supervision instead of looping.
+                if should_escalate(incident, contract, result):
+                    self.escalate(incident, reason="recovery failed repeatedly")
+                    outcome = "escalated"
+                    break
                 self._gw(incident, "reopen_incident", {"incident_id": incident.id},
                          self._agent(incident), idem=f"reopen-{incident.id}-{incident.reopened_count}")
                 self.session.refresh(incident)
+                notify.dispatch(self.session, to_role=Role.SUPERVISOR, kind="reopened",
+                                title=f"Incident {incident.id} reopened",
+                                body="Recovery was not proven — the fault recurred. A contingency needs your approval.",
+                                incident=incident,
+                                action_path=f"/missions/{incident.id}?tab=contingency")
                 outcome = "reopened"
                 break
             if result.verdict == "verified":
@@ -390,6 +413,31 @@ class RecoveryService:
                  idem=f"publish-verified-{incident.id}")
         self._gw(incident, "create_knowledge_candidate", {"incident_id": incident.id},
                  self._agent(incident), idem=f"knowledge-{incident.id}")
+        notify.dispatch(self.session, to_role=Role.SUPERVISOR, kind="verified",
+                        title=f"Recovery verified — {incident.id}",
+                        body="All conditions passed for the full window and quality released. The incident is closed.",
+                        incident=incident, action_path=f"/missions/{incident.id}?tab=outcome")
+        self.session.flush()
+
+    def escalate(self, incident: Incident, *, reason: str) -> None:
+        """Hand the incident to plant supervision (terminal). Used when policy says recovery has
+        failed too many times — the agent stops looping and a human takes over."""
+        transition(self.session, incident, WorkflowState.ESCALATED,
+                   actor=self.reasoning.id, role=Role.AGENT, reason=reason)
+        from app.domain.enums import OutcomeType
+
+        incident.outcome_type = OutcomeType.ESCALATED
+        incident.outcome_summary = f"Escalated to plant supervision: {reason}."
+        self.session.add(incident)
+        record_audit(self.session, type=AuditEventType.ESCALATED,
+                     correlation_id=incident.correlation_id, actor=self.reasoning.id, role=Role.AGENT,
+                     summary=f"Escalated to plant supervision: {reason}", incident_id=incident.id)
+        notify.dispatch(self.session, to_role=Role.SUPERVISOR, kind="escalated",
+                        title=f"Incident {incident.id} escalated",
+                        body=f"Recovery could not be verified within policy ({reason}). Plant supervision must take over.",
+                        incident=incident)
+        notify.dispatch(self.session, to_role=Role.PLANT_ADMIN, kind="escalated",
+                        title=f"Incident {incident.id} escalated", body=reason, incident=incident)
         self.session.flush()
 
     def current_evaluation(self, incident: Incident) -> EvaluationResult:

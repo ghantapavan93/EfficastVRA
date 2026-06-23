@@ -91,6 +91,17 @@ mission also carries a plain-language **operator brief** (what happened · what 
 > Designed to run with **just Python 3.11+ and Node 18+** — **Docker is optional**. SQLite and an
 > in-process vector store are the defaults so there is nothing to provision for the demo.
 
+**One command (after `install`):**
+```powershell
+./run.ps1 install      # Windows: backend + frontend deps      (or: make install)
+./run.ps1 dev          # backend :8000 + frontend :3000, both hot-reload   (or: make dev)
+```
+`run.ps1` (Windows) and `Makefile` (macOS/Linux/Git-Bash) both expose `install · dev · backend ·
+frontend · seed · reset · demo · eval · test`. Use **dev** (`next dev`) while developing — it
+hot-reloads; `npm start` serves a production build and won't reflect edits without a rebuild.
+
+Manual steps below if you prefer.
+
 ### Backend
 ```powershell
 cd backend
@@ -114,6 +125,7 @@ python -m app.cli seed     # load synthetic plant + scenario (idempotent)
 python -m app.cli reset    # one-command wipe + reseed
 python -m app.cli demo     # run the full PO-2841 recovery replay headless
 python -m app.cli eval     # agent reliability eval — proves it never false-closes a relapse
+python -m app.mcp_server   # Model Context Protocol server (read-only) — connect Claude/any MCP host
 pytest                     # backend test suite (deterministic, no network)
 cd ../frontend && npm test # frontend tests
 ```
@@ -133,14 +145,21 @@ docker compose run --rm backend python -m app.cli seed
 
 | Doc | Purpose |
 |---|---|
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System design, boundaries, data flow |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System design (C4), boundaries, data flow |
+| [`docs/adr/`](docs/adr/README.md) | Architecture Decision Records — the *why*, enforced by fitness functions |
 | [`docs/PRODUCT_SCOPE.md`](docs/PRODUCT_SCOPE.md) | What this is / is not |
 | [`docs/RECOVERY_CONTRACT.md`](docs/RECOVERY_CONTRACT.md) | The core primitive |
+| [`docs/RECOVERY_FORECASTING.md`](docs/RECOVERY_FORECASTING.md) | **New primitive** — predicts a false recovery *before* the fault recurs (advisory) |
 | [`docs/STATE_MACHINE.md`](docs/STATE_MACHINE.md) | States, transitions, guards |
 | [`docs/AGENT_RESEARCH.md`](docs/AGENT_RESEARCH.md) / [`docs/AGENT_GRAPH.md`](docs/AGENT_GRAPH.md) | SOTA agent research (cited) & the implemented reasoning graph |
 | [`docs/MACHINE_AGNOSTIC.md`](docs/MACHINE_AGNOSTIC.md) / [`docs/REAL_DATA_INTEGRATION.md`](docs/REAL_DATA_INTEGRATION.md) | Any-machine contract catalog & the real-data / Efficast-API seams |
 | [`docs/INDUSTRY_LANDSCAPE.md`](docs/INDUSTRY_LANDSCAPE.md) / [`docs/INTEGRATION_ARCHITECTURE.md`](docs/INTEGRATION_ARCHITECTURE.md) | How real platforms deliver agents (cited) & our ISA-95/UNS connector layer |
+| [`docs/AGENT_CAPABILITY_AUDIT.md`](docs/AGENT_CAPABILITY_AUDIT.md) / [`docs/MCP_INTEGRATION.md`](docs/MCP_INTEGRATION.md) | Top-grade agent capabilities vs. us (cited) & the read-only MCP server |
+| [`docs/CROSS_INDUSTRY_RESEARCH.md`](docs/CROSS_INDUSTRY_RESEARCH.md) | Cross-industry agent research → the **Decision Intelligence** layer (risk-adjusted economics + FMEA) |
+| [`docs/ORGANIZATIONAL_LEARNING.md`](docs/ORGANIZATIONAL_LEARNING.md) | The **knowledge learning loop** — tribal knowledge → human-curated institutional memory (continual learning without weight updates) |
 | [`docs/SECURITY_MODEL.md`](docs/SECURITY_MODEL.md) / [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) | Gateway, authz, OT safety, threats |
+| [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) | Security · logging · auditability posture, mapped to IEC 62443 / ISO 27001 / SOC 2 / NIST / EU AI Act (live at `/api/governance`) |
+| [`docs/OPERATIONS.md`](docs/OPERATIONS.md) / [`docs/INCIDENT_RESPONSE.md`](docs/INCIDENT_RESPONSE.md) | SLOs · ownership (RACI) · on-call · uptime, and the system-incident runbook |
 | [`docs/EFFICAST_EVIDENCE_LEDGER.md`](docs/EFFICAST_EVIDENCE_LEDGER.md) | Tagged claims about Efficast |
 | [`docs/REPOSITORY_AUDIT.md`](docs/REPOSITORY_AUDIT.md) / [`docs/LICENSE_AUDIT.md`](docs/LICENSE_AUDIT.md) | Phase-0 audit & licenses |
 | [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) | Step-by-step demo |

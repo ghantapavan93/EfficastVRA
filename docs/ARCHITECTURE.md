@@ -3,6 +3,17 @@
 Three deliberately separated systems behind one adapter boundary. The Large Language Model is never
 the authoritative state store; deterministic code owns all decisions.
 
+> **How to read this doc (C4):** the diagram below is the **container** view; the "Three systems"
+> sections are the **component** view. The **why** behind the structure is in
+> [`adr/`](adr/README.md) (Architecture Decision Records), and the boundaries are **enforced** by
+> executable fitness functions (`backend/tests/test_architecture.py`). The hexagonal seams are the
+> **ports** (`app/ports/`) and the wiring is the **composition root** (`app/composition.py`) — change
+> that one file to swap synthetic adapters for a real Efficast / OPC-UA / hosted-model deployment.
+
+**System context (C4 L1):** a *plant operator/engineer/supervisor* uses the Verified Recovery Agent,
+which sits **above** the host MES (Efficast) and its Unified Namespace — it reads evidence and proposes/
+publishes decisions, and **never controls a machine**.
+
 ```
                           ┌─────────────────────────────────────────────┐
    Next.js (Forge UI) ───▶│  FastAPI HTTP API  (app/api)                 │

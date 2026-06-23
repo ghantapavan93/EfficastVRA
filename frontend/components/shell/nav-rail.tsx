@@ -1,9 +1,9 @@
 "use client";
 
-import { Activity, BellRing, FileCheck2, FlaskConical, Gauge, Lightbulb, ListChecks, ShieldCheck } from "lucide-react";
+import { Activity, BellRing, FileCheck2, FlaskConical, Gauge, Inbox, Lightbulb, ListChecks, ShieldCheck, Wrench } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAlerts, useMissions } from "@/lib/hooks";
+import { useAlerts, useKnowledge, useMissions, useNotifications } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/forge/primitives";
 
@@ -11,7 +11,11 @@ export function NavRail() {
   const pathname = usePathname();
   const { data } = useMissions();
   const { data: alertData } = useAlerts(8000);
+  const { data: notifData } = useNotifications(8000);
+  const { data: knowledgeData } = useKnowledge(10000);
   const openAlerts = alertData?.alerts.length ?? 0;
+  const unread = notifData?.unread ?? 0;
+  const pendingKnowledge = knowledgeData?.pending ?? 0;
   const active = data?.missions.find((m) => m.is_active);
   const primary = active?.id ?? data?.missions[0]?.id;
   const m = (tab: string) => (primary ? `/missions/${primary}?tab=${tab}` : "/missions");
@@ -20,9 +24,11 @@ export function NavRail() {
     { href: "/missions", icon: Gauge, label: "Missions", match: (p: string) => p === "/missions", badge: 0 },
     { href: "/alerts", icon: BellRing, label: "MAIA Alerts", match: (p: string) => p === "/alerts", badge: openAlerts },
     { href: primary ? `/missions/${primary}` : "/missions", icon: Activity, label: "Active Recovery", match: (p: string) => p.startsWith("/missions/"), badge: 0 },
+    { href: "/inbox", icon: Inbox, label: "Notifications", match: (p: string) => p === "/inbox", badge: unread },
+    { href: "/troubleshoot", icon: Wrench, label: "Troubleshoot", match: (p: string) => p === "/troubleshoot", badge: 0 },
     { href: m("evidence"), icon: ListChecks, label: "Evidence", match: () => false, badge: 0 },
     { href: m("contract"), icon: FileCheck2, label: "Approvals", match: () => false, badge: 0 },
-    { href: m("outcome"), icon: Lightbulb, label: "Knowledge", match: () => false, badge: 0 },
+    { href: "/knowledge", icon: Lightbulb, label: "Knowledge", match: (p: string) => p === "/knowledge", badge: pendingKnowledge },
     { href: "/system", icon: ShieldCheck, label: "System Health", match: (p: string) => p === "/system", badge: 0 },
   ];
 

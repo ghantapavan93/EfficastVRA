@@ -515,6 +515,9 @@ class RecoveryObservation(Base, table=True):
     cycle_time: Optional[float] = None
     scrap_pct: Optional[float] = None
     fault_code: Optional[str] = None
+    # A hidden degradation precursor (e.g. drive-end bearing high-frequency vibration / crest factor).
+    # The headline metrics can look recovered while this rises — the Recovery Forecaster reads it.
+    bearing_precursor: Optional[float] = None
     source: str = "SyntheticEfficastPort"
     freshness_s: int = 0
     raw: dict = Field(default_factory=dict, sa_type=JSON)
@@ -581,6 +584,31 @@ class AuditEvent(Base, table=True):
     workflow_version: str = ""
     model_version: str = ""
     prompt_version: str = ""
+    # Tamper-evidence: each entry hashes the previous one, forming a per-correlation hash chain.
+    prev_hash: str = ""
+    entry_hash: str = Field(default="", index=True)
+
+
+class Notification(Base, table=True):
+    """A task/alert pushed to a person or role — so personnel don't have to hunt for what to do next.
+
+    In the prototype the channel is in-app (read at /api/notifications); a real deployment swaps the
+    dispatch sink for Efficast's WhatsApp/email (see app/services/notifications.py).
+    """
+
+    id: str = Field(default_factory=id_factory("NOTI"), primary_key=True)
+    tenant_id: str = Field(index=True)
+    plant_id: str = Field(index=True)
+    incident_id: Optional[str] = Field(default=None, index=True)
+    correlation_id: str = ""
+    to_role: Role = Field(index=True)
+    to_user: Optional[str] = None
+    channel: str = "in_app"            # in_app | whatsapp | email (synthetic)
+    kind: str = ""                      # evidence_required | approval_required | reopened | verified | escalated | diagnosis_proposed
+    title: str = ""
+    body: str = ""
+    status: str = Field(default="unread", index=True)   # unread | read
+    action_path: str = ""               # deep-link the UI can route to
 
 
 class KnowledgeCandidate(Base, table=True):
@@ -599,6 +627,9 @@ class KnowledgeCandidate(Base, table=True):
     status: KnowledgeStatus = KnowledgeStatus.PENDING_REVIEW
     reviewer_role: Role = Role.QUALITY_ENGINEER
     review_due: Optional[datetime] = None
+    reviewed_by: Optional[str] = None        # who curated it into institutional knowledge
+    reviewed_at: Optional[datetime] = None
+    review_reason: str = ""
 
 
 class AgentReasoningTrace(Base, table=True):

@@ -22,8 +22,12 @@ Stated plainly. This is a hackathon prototype optimised for **depth of one workf
 - The **Docker Compose / Postgres + pgvector** path is provided and standard, but the *verified* path
   in this build is the local SQLite one; the Compose images were authored but not exhaustively
   run-tested in the build environment.
-- The transactional **outbox** is written but its background publisher is a simple in-process drain,
-  not a separate durable worker; there is no real external broker.
+- The transactional **outbox** is fully closed-loop: events are written in-transaction and relayed by
+  `drain_outbox` (pending→published, with attempt counting and a `failed` dead-letter state after
+  `MAX_OUTBOX_ATTEMPTS`). The relay runs **in-process** — triggered after each successful mutating
+  request and observable at `/health` and on the System page. It is not yet a separate durable worker
+  against a real broker; the publish sink is a structured log line (swap it for a Kafka/MQTT producer
+  in production — see PRODUCTION_EVOLUTION.md).
 
 ## RAG
 - Embeddings are a **deterministic lexical hash** (no semantic model), good enough to demonstrate

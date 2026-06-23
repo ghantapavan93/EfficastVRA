@@ -9,14 +9,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
-from app.adapters.synthetic import SyntheticEfficastPort
+from app.api import serializers as S
 from app.auth import Principal, get_principal
+from app.composition import build_recovery_service
 from app.config import get_settings
 from app.db import get_session
 from app.domain.models import ApprovalRequirement, EvidenceRequirement, Incident, RecoveryContract
 from app.gateway import execute as gateway_execute
-from app.api import serializers as S
-from app.reasoning import get_reasoning_provider
 from app.workflow.recovery_service import RecoveryService
 
 router = APIRouter(prefix="/api", tags=["recovery"])
@@ -31,15 +30,35 @@ def _incident(session: Session, incident_id: str) -> Incident:
 
 
 def _svc(session: Session) -> RecoveryService:
-    return RecoveryService(session, port=SyntheticEfficastPort(session), reasoning=get_reasoning_provider())
+    # Constructed via the composition root so "which adapter / which model" lives in one place.
+    return build_recovery_service(session)
 
 
 # ── identity ─────────────────────────────────────────────────────────────────
 @router.get("/me")
 def me(principal: Principal = Depends(get_principal)) -> dict:
+    from app.security import permissions_for
+
     return {"user_id": principal.user_id, "username": principal.username, "role": principal.role.value,
             "plant_id": principal.plant_id, "tenant_id": principal.tenant_id,
+            "permissions": permissions_for(principal.role),
             "environment": _settings.environment, "demo_mode": _settings.demo_mode}
+
+
+@router.get("/metrics")
+def metrics(session: Session = Depends(get_session)) -> dict:
+    """Operational SLIs (uptime, request/error counters, latency percentiles, status mix) + mission KPIs."""
+    from app.observability import snapshot
+
+    incidents = session.exec(select(Incident).where(Incident.historical == False)).all()  # noqa: E712
+    terminal = {"VERIFIED_RECOVERY", "CANCELLED", "ESCALATED"}
+    snap = snapshot()
+    snap["missions"] = {
+        "active": len([i for i in incidents if i.state.value not in terminal]),
+        "verified": len([i for i in incidents if i.state.value == "VERIFIED_RECOVERY"]),
+        "reopened_total": sum(i.reopened_count for i in incidents),
+    }
+    return snap
 
 
 # ── reads ────────────────────────────────────────────────────────────────────
@@ -116,14 +135,65 @@ def outcome(incident_id: str, session: Session = Depends(get_session)) -> dict:
 
 @router.get("/incidents/{incident_id}/audit")
 def audit(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    from app.workflow.audit import verify_audit_chain
+
     inc = _incident(session, incident_id)
-    return {"events": S.audit_view(session, inc)}
+    return {"events": S.audit_view(session, inc),
+            "integrity": verify_audit_chain(session, inc.correlation_id)}
+
+
+@router.get("/incidents/{incident_id}/audit/verify")
+def audit_verify(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """Recompute the audit hash chain and report tamper-evidence (compliance/integrity check)."""
+    from app.workflow.audit import verify_audit_chain
+
+    inc = _incident(session, incident_id)
+    return verify_audit_chain(session, inc.correlation_id)
+
+
+@router.get("/notifications")
+def notifications(session: Session = Depends(get_session),
+                  principal: Principal = Depends(get_principal)) -> dict:
+    from app.services import notifications as notify
+
+    rows = notify.list_for(session, role=principal.role)
+    return {"notifications": [S.notification_view(n) for n in rows],
+            "unread": notify.unread_count(session, role=principal.role),
+            "role": principal.role.value}
+
+
+@router.post("/notifications/{notification_id}/read")
+def notification_read(notification_id: str, session: Session = Depends(get_session),
+                      principal: Principal = Depends(get_principal)) -> dict:
+    from app.services import notifications as notify
+
+    note = notify.mark_read(session, notification_id)
+    if note is None:
+        raise HTTPException(404, "notification not found")
+    session.commit()
+    return {"ok": True, "status": note.status}
 
 
 @router.get("/incidents/{incident_id}/reasoning")
 def reasoning(incident_id: str, session: Session = Depends(get_session)) -> dict:
     inc = _incident(session, incident_id)
     return S.reasoning_view(session, inc)
+
+
+@router.get("/incidents/{incident_id}/forecast")
+def forecast(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """Recovery Forecaster — predicts whether the repair will hold, before the fault recurs (advisory)."""
+    inc = _incident(session, incident_id)
+    return S.forecast_view(session, inc)
+
+
+@router.get("/incidents/{incident_id}/decision")
+def decision(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """Decision Intelligence — risk-adjusted cost/impact, recommended option, and an FMEA (advisory)."""
+    from app.services.decision import decide
+
+    inc = _incident(session, incident_id)
+    return decide(session, inc)
 
 
 # ── front of the loop: MAIA alerts + agent diagnosis ──────────────────────────
@@ -136,6 +206,52 @@ def alerts(session: Session = Depends(get_session)) -> dict:
 def machine_profiles() -> dict:
     """The machine-agnostic contract catalog (supported equipment classes)."""
     return S.machine_profiles_view()
+
+
+@router.get("/troubleshoot")
+def troubleshoot(fault_code: Optional[str] = None, machine_model: Optional[str] = None,
+                 q: str = "", session: Session = Depends(get_session)) -> dict:
+    """Grounded troubleshooting lookup: approved procedure + ranked causes + history + signals +
+    captured lessons for a fault/machine — so a plant person finds the answer without hunting."""
+    from app.services.troubleshooting import troubleshoot as _ts
+
+    return _ts(session, fault_code=fault_code, machine_model=machine_model, query=q)
+
+
+@router.get("/knowledge")
+def knowledge(session: Session = Depends(get_session)) -> dict:
+    """Institutional knowledge base — candidate + curated lessons from past recoveries."""
+    from app.services.knowledge import list_candidates
+
+    rows = [S.knowledge_view(k) for k in list_candidates(session)]
+    return {"knowledge": rows,
+            "pending": len([r for r in rows if r["status"] == "PENDING_REVIEW"]),
+            "approved": len([r for r in rows if r["status"] == "APPROVED"])}
+
+
+class ReviewBody(BaseModel):
+    decision: str = "approve"
+    reason: str = ""
+
+
+@router.post("/knowledge/{candidate_id}/review")
+def review_knowledge(candidate_id: str, body: ReviewBody, session: Session = Depends(get_session),
+                     principal: Principal = Depends(get_principal)) -> dict:
+    """Curate a candidate lesson into institutional knowledge (reviewer-role-gated)."""
+    from app.services.knowledge import review_knowledge as _review
+
+    kc = _review(session, candidate_id, principal, decision=body.decision, reason=body.reason)
+    session.commit()
+    return {"ok": True, "status": kc.status.value, "reviewed_by": kc.reviewed_by}
+
+
+@router.get("/governance")
+def governance(session: Session = Depends(get_session)) -> dict:
+    """Live governance & compliance posture: security, logging, auditability, reliability,
+    control-framework alignment, and honest gaps."""
+    from app.services.governance import posture
+
+    return posture(session)
 
 
 @router.get("/integration")

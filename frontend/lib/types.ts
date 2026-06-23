@@ -219,6 +219,16 @@ export interface KnowledgeCandidate {
   reviewer_role: Role;
   review_due: string | null;
   pending_review: boolean;
+  incident_id?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  review_reason?: string;
+}
+
+export interface KnowledgeList {
+  knowledge: KnowledgeCandidate[];
+  pending: number;
+  approved: number;
 }
 
 export interface OutcomeView {
@@ -297,6 +307,108 @@ export interface ReasoningView {
   step_count: number;
   steps: ReasoningStep[];
   note: string;
+}
+
+export interface AppNotification {
+  id: string;
+  incident_id: string | null;
+  to_role: Role;
+  channel: string;
+  kind: string;
+  title: string;
+  body: string;
+  status: "unread" | "read";
+  action_path: string;
+  at: string | null;
+}
+
+export interface NotificationsView {
+  notifications: AppNotification[];
+  unread: number;
+  role: Role;
+}
+
+export interface AuditIntegrity {
+  ok: boolean;
+  broken_at_seq: number | null;
+  count: number;
+}
+
+export interface DecisionOption {
+  action: string;
+  label: string;
+  expected_cost_usd: number;
+  rationale: string;
+  recommended?: boolean;
+}
+
+export interface FmeaRow {
+  failure_mode: string;
+  effect: string;
+  severity: number;
+  occurrence: number;
+  detection: number;
+  detection_without_agent: number;
+  rpn: number;
+  rpn_without_agent: number;
+}
+
+export interface DecisionView {
+  available: boolean;
+  incident_id: string;
+  p_relapse: number;
+  forecast_state: string;
+  impact: {
+    order_id: string | null;
+    units_remaining: number;
+    throughput_per_hour: number;
+    hours_to_complete: number;
+    false_closure_exposure_usd: number;
+    assumptions: { downtime_cost_per_hour: number; scrap_cost_per_unit: number; contingency_prep_cost: number };
+  };
+  options: DecisionOption[];
+  recommendation: { action: string; label: string; headline: string; why: string };
+  fmea: FmeaRow[];
+  fmea_note: string;
+  summary: string;
+  advisory: string;
+}
+
+export interface TroubleshootResult {
+  query: { fault_code: string | null; machine_model: string | null; text: string };
+  machine: { model?: string; equipment_class?: string; label?: string } | null;
+  summary: string;
+  likely_causes: { cause: string; likelihood: string; basis?: string }[];
+  approved_procedures: { document_id?: string; section?: string; revision?: string; approval_status?: string; excerpt?: string }[];
+  history: { incident_id: string; fault_code: string | null; outcome: string | null; summary: string }[];
+  what_worked: string;
+  signals_to_check: { key: string; label: string; op: string; threshold: number | null; unit: string }[];
+  early_warning: string;
+  knowledge: { title: string; lesson: string; status: string; pending_review: boolean; failed_intervention?: string; successful_intervention?: string }[];
+  cautions: { document_id?: string; reason?: string; approval_status?: string; revision?: string; excerpt?: string }[];
+}
+
+export interface ForecastHypothesis {
+  id: string;
+  label: string;
+  support: number;
+  evidence?: string;
+}
+
+export interface ForecastView {
+  available: boolean;
+  incident_id: string;
+  observed_cycles?: number;
+  p_recovery_holds?: number;
+  p_relapse?: number;
+  predicted_relapse_cycle?: number | null;
+  fault_cycle?: number | null;
+  lead_cycles?: number | null;
+  divergence?: number;
+  leading_indicator?: string;
+  hypotheses?: ForecastHypothesis[];
+  series?: { cycle: number; p_relapse: number }[];
+  headline?: string;
 }
 
 export interface MaiaAlert {

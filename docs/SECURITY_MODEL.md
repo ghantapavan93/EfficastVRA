@@ -60,9 +60,18 @@ Enforcement (asserted by `test_no_machine_control_exists`):
   injection memo cannot grant machine control or alter approvals
   (`test_prompt_injection_cannot_change_permissions`).
 
+- **Tamper-evident audit:** every `AuditEvent` is hash-chained to the previous entry per correlation
+  thread (`prev_hash`/`entry_hash`). `verify_audit_chain` (and `GET /api/incidents/{id}/audit/verify`,
+  surfaced as a "tamper-evident · verified" badge) recomputes the chain and pinpoints the first altered,
+  inserted, or removed row — an electronic-records integrity property
+  (`test_audit_chain_verifies_and_detects_tampering`).
+
 ## Reliability as safety
-Idempotency (once-only writes), optimistic locking, transactional outbox (no lost/duplicated
-decisions), and per-tool circuit breaker bound the blast radius of repeated or failing actions. Every
-write is audited with correlation, policy, workflow, model, and prompt versions.
+Idempotency (once-only writes), optimistic locking, transactional outbox **with an active relay**
+(`drain_outbox`: pending→published, retry classification, `failed` dead-letter — no lost/duplicated
+decisions), and per-tool circuit breaker bound the blast radius of repeated or failing actions. Policy
+**escalation** stops the agent from looping after repeated failures and hands the incident to a human.
+Every write is audited with correlation, policy, workflow, model, and prompt versions; and the agent
+**pushes the next task to the responsible role** (notifications) so nothing waits unseen.
 
 See [`THREAT_MODEL.md`](THREAT_MODEL.md) for the adversary analysis.

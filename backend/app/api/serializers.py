@@ -369,6 +369,8 @@ def knowledge_view(kc: KnowledgeCandidate) -> dict:
         "successful_intervention": kc.successful_intervention, "status": kc.status.value,
         "reviewer_role": kc.reviewer_role.value, "review_due": _iso(kc.review_due),
         "pending_review": kc.status.value == "PENDING_REVIEW",
+        "incident_id": kc.incident_id, "reviewed_by": kc.reviewed_by,
+        "reviewed_at": _iso(kc.reviewed_at), "review_reason": kc.review_reason,
     }
 
 
@@ -382,7 +384,30 @@ def audit_view(session: Session, incident: Incident) -> list[dict]:
         "policy_version": a.policy_version, "workflow_version": a.workflow_version,
         "model_version": a.model_version, "prev_state": a.prev_state.value if a.prev_state else None,
         "new_state": a.new_state.value if a.new_state else None, "detail": a.detail,
+        "entry_hash": (a.entry_hash or "")[:12], "prev_hash": (a.prev_hash or "")[:12],
     } for a in audits]
+
+
+def forecast_view(session: Session, incident: Incident) -> dict:
+    """Recovery Forecaster — the live prediction of whether this repair will hold (advisory)."""
+    import dataclasses
+
+    from app.services.forecaster import forecast as _forecast
+
+    if not incident.current_contract_id:
+        return {"available": False, "incident_id": incident.id}
+    contract = session.get(RecoveryContract, incident.current_contract_id)
+    if contract is None:
+        return {"available": False, "incident_id": incident.id}
+    return {"incident_id": incident.id, **dataclasses.asdict(_forecast(session, contract))}
+
+
+def notification_view(n) -> dict:
+    return {
+        "id": n.id, "incident_id": n.incident_id, "to_role": n.to_role.value,
+        "channel": n.channel, "kind": n.kind, "title": n.title, "body": n.body,
+        "status": n.status, "action_path": n.action_path, "at": _iso(n.created_at),
+    }
 
 
 _NODE_LABEL = {

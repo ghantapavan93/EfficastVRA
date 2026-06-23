@@ -9,10 +9,16 @@ cd frontend && npm run e2e     # UI e2e (Playwright; needs servers up + `npx pla
 ```
 
 ## Results (this build)
-- **Backend: 40 passed** (`pytest`, ~9s, Python 3.13, no network) — includes the Phase-8 agent
+- **Backend: 74 passed** (`pytest`, ~18s, Python 3.13, no network) — includes the Phase-8 agent
   reliability + reasoning-trace tests, the Phase-9 front-of-loop (MAIA triage → human accept) tests,
-  the Phase-10 machine-agnostic catalog + real-data telemetry tests, and the Phase-11 ISA-95 / UNS /
-  connector-catalog tests.
+  the Phase-10 machine-agnostic catalog + real-data telemetry tests, the Phase-11 ISA-95 / UNS /
+  connector-catalog tests, the Phase-12 outbox-relay + dead-letter + deep-health + correlation-id
+  reliability tests, the Phase-13 tamper-evident-audit + escalation + notification tests, and the
+  Phase-14 **architecture fitness functions** (executable layering constraints), and the Phase-15 MCP
+  server tests (spec compliance + the read-only interop guarantee), and the Phase-16 **Recovery
+  Forecaster** tests (predicts a relapse before the fault fires; advisory — never changes state), and
+  the Phase-21 **knowledge learning-loop** tests (capture → role-gated human review → authoritative
+  reuse; the agent can never approve its own lesson).
 - **Frontend: 22 passed** (`vitest run`, 7 files) — includes the Agent Reasoning and Agent Diagnosis
   panel tests.
 - **UI e2e**: 2 Playwright specs authored (`tests/e2e/recovery.spec.ts`) — run against live servers.

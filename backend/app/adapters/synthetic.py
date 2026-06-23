@@ -59,13 +59,15 @@ class ScenarioPhysics:
 
         if window_seq == 1:
             if i < self.RELAPSE_CYCLE:
-                # Window 1 LOOKS like recovery (the trap the product is built to catch).
+                # Window 1 LOOKS like recovery on the headline metrics (the trap the product catches),
+                # but the bearing precursor is quietly rising — the signal the Forecaster reads early.
                 return {
                     "vibration": round(3.62 - 0.012 * i, 3),          # 3.6 → 3.43  (≤ 4.0 ✓)
                     "temperature": round(max(b_temp, 84.0 - 0.95 * i), 2),  # declining from 84 ✓
                     "cycle_time": round(12.60 - 0.010 * i, 3),        # ~12.5 → 12.44 (within 5% ✓)
                     "scrap_pct": 1.8,                                  # < 2.0 ✓
                     "fault_code": None,
+                    "bearing_precursor": round(min(1.0, 0.20 + 0.06 * i), 3),  # hidden drift 0.26 → ~1.0
                 }
             # Cycle 17: the originating fault recurs. Recovery was never real.
             return {
@@ -74,15 +76,17 @@ class ScenarioPhysics:
                 "cycle_time": 14.0,
                 "scrap_pct": 3.6,
                 "fault_code": self.FAULT,
+                "bearing_precursor": 1.0,
             }
 
-        # Window 2: after bearing replacement — genuinely stable for 30 cycles.
+        # Window 2: after bearing replacement — genuinely stable for 30 cycles, precursor flat-low.
         return {
             "vibration": round(3.20 - 0.003 * i, 3),                  # 3.2 → 3.11
             "temperature": round(max(b_temp, 70.0 - 0.25 * i), 2),    # declines toward baseline ✓
             "cycle_time": round(12.30 - 0.003 * i, 3),                # ~12.3 → 12.21
             "scrap_pct": b_scrap,                                      # 1.6 < 2.0 ✓
             "fault_code": None,
+            "bearing_precursor": round(max(0.05, 0.12 - 0.001 * i), 3),  # healthy: low & flat
         }
 
 

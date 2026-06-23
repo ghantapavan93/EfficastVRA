@@ -53,6 +53,7 @@ def advance_cycle(
         cycle_time=sample.get("cycle_time"),
         scrap_pct=sample.get("scrap_pct"),
         fault_code=sample.get("fault_code"),
+        bearing_precursor=sample.get("bearing_precursor"),
         source="SyntheticEfficastPort",
         freshness_s=2,
     )
