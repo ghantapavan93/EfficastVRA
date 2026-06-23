@@ -102,6 +102,12 @@ def _t_decision(session: Session, args: dict) -> Any:
     return decide(session, _incident(session, args))
 
 
+def _t_reliability(session: Session, args: dict) -> Any:
+    from app.services.reliability_stats import assess
+
+    return assess(session, _incident(session, args))
+
+
 def _t_knowledge(session: Session, _args: dict) -> Any:
     from app.services.knowledge import list_candidates
 
@@ -141,6 +147,8 @@ TOOLS: list[dict[str, Any]] = [
      "description": "Grounded troubleshooting for a fault/machine: approved procedure, ranked causes, past-incident history, signals to check, and captured lessons."},
     {"name": "get_decision_intelligence", "fn": _t_decision, "inputSchema": _INCIDENT_ARG,
      "description": "Risk-adjusted decision view (advisory): cost/production exposure, expected cost of each option with a recommendation, and an FMEA (RPN)."},
+    {"name": "get_reliability_assessment", "fn": _t_reliability, "inputSchema": _INCIDENT_ARG,
+     "description": "Statistical confidence in the recovery verdict (advisory): zero-failure reliability-demonstration test (confidence vs. stable cycles, cycles needed for a target), window grade, and bathtub-curve hazard read."},
     {"name": "list_knowledge", "fn": _t_knowledge, "inputSchema": {"type": "object", "properties": {}},
      "description": "Institutional knowledge base: candidate + human-approved lessons from past recoveries (with review status)."},
     {"name": "list_open_alerts", "fn": _t_open_alerts, "inputSchema": {"type": "object", "properties": {}},

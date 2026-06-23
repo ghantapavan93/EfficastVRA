@@ -196,6 +196,17 @@ def decision(incident_id: str, session: Session = Depends(get_session)) -> dict:
     return decide(session, inc)
 
 
+@router.get("/incidents/{incident_id}/reliability")
+def reliability(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """Reliability statistics — how confident, mathematically, the recovery verdict is: the zero-failure
+    reliability-demonstration test (confidence vs. stable cycles, cycles needed for a target), a window
+    grade, and a bathtub-curve hazard read. Advisory — never changes the deterministic verdict."""
+    from app.services.reliability_stats import assess
+
+    inc = _incident(session, incident_id)
+    return assess(session, inc)
+
+
 # ── front of the loop: MAIA alerts + agent diagnosis ──────────────────────────
 @router.get("/alerts")
 def alerts(session: Session = Depends(get_session)) -> dict:

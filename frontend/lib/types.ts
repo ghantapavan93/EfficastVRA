@@ -374,6 +374,50 @@ export interface DecisionView {
   advisory: string;
 }
 
+export interface ReliabilityView {
+  available: boolean;
+  incident_id: string;
+  reason?: string;
+  stable_cycles?: number;
+  observed_cycles?: number;
+  required_stable_cycles?: number;
+  target_relapse_rate?: number;
+  confidence_level?: number;
+  confidence_now?: number;
+  confidence_at_window?: number;
+  demonstrated_relapse_ceiling?: number;
+  cycles_for_target?: number;
+  window_grade?: string;
+  sprt?: {
+    decision: "accept" | "reject" | "continue";
+    decided_at_cycle: number | null;
+    n: number;
+    llr: number;
+    accept_bound: number;
+    reject_bound: number;
+    clean_cycles_to_accept: number | null;
+    p0: number;
+    p1: number;
+    alpha: number;
+    beta: number;
+  };
+  sprt_summary?: string;
+  hazard?: {
+    relapse_cycles_observed: number[];
+    mean_cycles_to_relapse: number | null;
+    sample_size: number;
+    pattern: string;
+    weibull_shape_hint: string | null;
+    interpretation: string;
+    data_confidence: string;
+    data_note: string;
+  };
+  verdict_confidence?: string;
+  headline?: string;
+  recommendation?: string;
+  advisory: string;
+}
+
 export interface TroubleshootResult {
   query: { fault_code: string | null; machine_model: string | null; text: string };
   machine: { model?: string; equipment_class?: string; label?: string } | null;

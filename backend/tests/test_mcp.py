@@ -72,4 +72,4 @@ def test_unknown_method_returns_jsonrpc_error(session):
 
 
 def test_tool_count_matches_registry():
-    assert len(TOOLS) == 12
+    assert len(TOOLS) == 13

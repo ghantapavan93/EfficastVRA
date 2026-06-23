@@ -14,6 +14,7 @@ import type {
   NotificationsView,
   OutcomeView,
   ReasoningView,
+  ReliabilityView,
   TimelineView,
   TroubleshootResult,
 } from "./types";
@@ -87,6 +88,7 @@ export const api = {
   reasoning: (id: string) => req<ReasoningView>(`/api/incidents/${id}/reasoning`),
   forecast: (id: string) => req<ForecastView>(`/api/incidents/${id}/forecast`),
   decision: (id: string) => req<DecisionView>(`/api/incidents/${id}/decision`),
+  reliability: (id: string) => req<ReliabilityView>(`/api/incidents/${id}/reliability`),
   troubleshoot: (p: { fault_code?: string; machine_model?: string; q?: string }) => {
     const qs = new URLSearchParams();
     if (p.fault_code) qs.set("fault_code", p.fault_code);

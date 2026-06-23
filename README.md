@@ -156,6 +156,7 @@ docker compose run --rm backend python -m app.cli seed
 | [`docs/INDUSTRY_LANDSCAPE.md`](docs/INDUSTRY_LANDSCAPE.md) / [`docs/INTEGRATION_ARCHITECTURE.md`](docs/INTEGRATION_ARCHITECTURE.md) | How real platforms deliver agents (cited) & our ISA-95/UNS connector layer |
 | [`docs/AGENT_CAPABILITY_AUDIT.md`](docs/AGENT_CAPABILITY_AUDIT.md) / [`docs/MCP_INTEGRATION.md`](docs/MCP_INTEGRATION.md) | Top-grade agent capabilities vs. us (cited) & the read-only MCP server |
 | [`docs/CROSS_INDUSTRY_RESEARCH.md`](docs/CROSS_INDUSTRY_RESEARCH.md) | Cross-industry agent research → the **Decision Intelligence** layer (risk-adjusted economics + FMEA) |
+| [`docs/RELIABILITY_STATISTICS.md`](docs/RELIABILITY_STATISTICS.md) | **Recovery confidence** — zero-failure reliability-demonstration test + **Wald SPRT** (sequential accept/reject) + machine/fault-scoped bathtub-curve hazard |
 | [`docs/ORGANIZATIONAL_LEARNING.md`](docs/ORGANIZATIONAL_LEARNING.md) | The **knowledge learning loop** — tribal knowledge → human-curated institutional memory (continual learning without weight updates) |
 | [`docs/SECURITY_MODEL.md`](docs/SECURITY_MODEL.md) / [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) | Gateway, authz, OT safety, threats |
 | [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) | Security · logging · auditability posture, mapped to IEC 62443 / ISO 27001 / SOC 2 / NIST / EU AI Act (live at `/api/governance`) |
