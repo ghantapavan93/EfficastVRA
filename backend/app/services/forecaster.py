@@ -43,6 +43,10 @@ class Forecast:
     hypotheses: list = field(default_factory=list)
     series: list = field(default_factory=list)  # [{cycle, p_relapse}] for the UI
     headline: str = ""
+    basis: str = ("p_relapse is a deterministic transform of one observed precursor channel "
+                  "(drive-end bearing vibration), not a learned/calibrated probability. In synthetic "
+                  "mode that channel is a seeded signal — so this surfaces a known divergence as an "
+                  "early warning; on real telemetry it tracks the same measured precursor.")
 
 
 def _p_relapse(precursor: float, slope: float) -> float:
@@ -74,9 +78,10 @@ def forecast(session: Session, contract: RecoveryContract) -> Forecast:
     latest_precursor = pts[-1][1]
     p_relapse = series[-1]["p_relapse"]
     fault_cycle = next((o.cycle_index for o in obs if o.fault_code), None)
-    lead = (fault_cycle - predicted) if (fault_cycle and predicted and predicted < fault_cycle) else None
+    lead = ((fault_cycle - predicted)
+            if (fault_cycle is not None and predicted is not None and predicted < fault_cycle) else None)
 
-    if fault_cycle and predicted and lead:
+    if fault_cycle is not None and predicted is not None and lead:
         headline = (f"Forecast called it: false-recovery warning at cycle {predicted}; fault confirmed "
                     f"at cycle {fault_cycle} — {lead} cycles of lead time.")
     elif predicted:

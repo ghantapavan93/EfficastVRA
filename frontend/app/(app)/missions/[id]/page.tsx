@@ -11,6 +11,7 @@ import { ActionBar } from "@/components/mission/action-bar";
 import { AgentReasoning } from "@/components/mission/agent-reasoning";
 import { DecisionPanel } from "@/components/mission/decision-panel";
 import { ReliabilityPanel } from "@/components/mission/reliability-panel";
+import { ProvenancePanel } from "@/components/mission/provenance-panel";
 import { DiagnosisPanel } from "@/components/mission/diagnosis-panel";
 import { ContingencyCompare } from "@/components/mission/contingency-compare";
 import { MissionHeader } from "@/components/mission/mission-header";
@@ -49,6 +50,7 @@ function MissionDetail({ id }: { id: string }) {
     { key: "evidence", label: "Evidence" },
     { key: "timeline", label: "Verification Timeline" },
     ...(m.reopened_count > 0 ? [{ key: "contingency", label: "Contingency" }] : []),
+    { key: "provenance", label: "Provenance" },
     { key: "outcome", label: "Outcome" },
   ];
 
@@ -92,6 +94,7 @@ function MissionDetail({ id }: { id: string }) {
         {tab === "evidence" && <EvidenceQueue incidentId={id} />}
         {tab === "timeline" && <VerificationTimeline incidentId={id} />}
         {tab === "contingency" && <ContingencyCompare incidentId={id} />}
+        {tab === "provenance" && <ProvenancePanel incidentId={id} />}
         {tab === "outcome" && <OutcomePanel incidentId={id} />}
       </div>
     </div>
@@ -140,8 +143,8 @@ function Overview({ m }: { m: import("@/lib/types").MissionDetail }) {
           <Row label="Next"><span className="text-ink">{m.next_action}</span></Row>
           <Row label="Missing evidence"><span className="mono text-ink">{m.missing_evidence}</span></Row>
           <Row label="Reopened"><span className="mono text-ink">×{m.reopened_count}</span></Row>
-          <Row label="Confidence">
-            {m.outcome_confidence >= 100 ? <Badge tone="verified">100%</Badge> : <span className="mono text-ink">{m.outcome_confidence}%</span>}
+          <Row label="Progress">
+            {m.recovery_progress >= 100 ? <Badge tone="verified">100%</Badge> : <span className="mono text-ink">{m.recovery_progress}%</span>}
           </Row>
         </div>
       </aside>

@@ -35,13 +35,22 @@ def test_decision_recommends_lowest_expected_cost_at_high_relapse_risk(session):
     assert "Advisory only" in d["advisory"]
 
 
-def test_decision_recommendation_flips_when_relapse_risk_is_low(session):
-    # Before any divergence, a low relapse probability should NOT recommend paying to pre-stage.
+def test_decision_costs_scale_with_relapse_risk_and_recommend_argmin(session):
     svc, inc, _c1 = to_monitoring(session)
-    svc.advance(inc, 1)
-    d = decide(session, inc)
-    # With p_relapse low, pre-staging's fixed prep cost makes "keep monitoring" or "close" cheaper.
-    assert d["recommendation"]["action"] in ("close_now", "keep_monitoring", "pre_stage_contingency")
-    # Sanity: the recommendation is always the minimum-expected-cost option.
-    cheapest = min(d["options"], key=lambda o: o["expected_cost_usd"])["action"]
-    assert d["recommendation"]["action"] == cheapest
+    svc.advance(inc, 1)                       # early → low relapse probability
+    low = decide(session, inc)
+    svc.advance(inc, 13)                      # cycle 14 → high relapse probability
+    high = decide(session, inc)
+    assert high["p_relapse"] > low["p_relapse"]
+
+    # The recommendation is always the minimum-expected-cost option (a real argmin, not "any of three").
+    for d in (low, high):
+        cheapest = min(d["options"], key=lambda o: o["expected_cost_usd"])["action"]
+        assert d["recommendation"]["action"] == cheapest
+
+    # Expected costs are genuinely risk-scaled: every option is cheaper at low risk than at high risk.
+    lo = {o["action"]: o["expected_cost_usd"] for o in low["options"]}
+    hi = {o["action"]: o["expected_cost_usd"] for o in high["options"]}
+    assert all(lo[a] < hi[a] for a in ("close_now", "keep_monitoring", "pre_stage_contingency"))
+    # close_now is risk-discounted below the undiscounted false-closure exposure (p < 1).
+    assert lo["close_now"] < low["impact"]["false_closure_exposure_usd"]

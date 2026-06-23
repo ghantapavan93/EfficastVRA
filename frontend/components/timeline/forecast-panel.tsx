@@ -74,7 +74,8 @@ export function ForecastPanel({ incidentId }: { incidentId: string }) {
         </div>
       )}
 
-      <p className="mt-3 text-[11px] text-ink-mut">
+      {data.basis && <p className="mt-3 text-[11px] text-ink-mut">{data.basis}</p>}
+      <p className="mt-2 text-[11px] text-ink-mut">
         Advisory only — the deterministic evaluator still decides closure. A forecast never reopens or
         closes an incident; it gives the team earlier insight.
       </p>

@@ -20,7 +20,7 @@ const mission: MissionSummary = {
   fault_code: "F27",
   contract_no: "RC-1042",
   contract_version: 2,
-  outcome_confidence: 20,
+  recovery_progress: 20,
   opened_at: null,
   updated_at: null,
   is_active: true,

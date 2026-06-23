@@ -33,6 +33,16 @@ function AuditIntegrityBadge({ incidentId }: { incidentId: string }) {
   const { data } = useAudit(incidentId);
   const integrity = data?.integrity;
   if (!integrity) return null;
+  // An empty chain (count 0) is not "verified" — there is nothing to attest. Only claim verified once
+  // there are entries AND the recomputed chain matches.
+  if (integrity.ok && integrity.count === 0)
+    return (
+      <span title="No audit entries yet">
+        <Badge tone="pending">
+          <ShieldCheck className="h-3 w-3" aria-hidden /> tamper-evident · no entries
+        </Badge>
+      </span>
+    );
   if (integrity.ok)
     return (
       <span title={`Hash chain verified across ${integrity.count} audit entries`}>

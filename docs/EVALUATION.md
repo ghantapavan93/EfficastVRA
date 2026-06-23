@@ -9,7 +9,7 @@ cd frontend && npm run e2e     # UI e2e (Playwright; needs servers up + `npx pla
 ```
 
 ## Results (this build)
-- **Backend: 84 passed** (`pytest`, ~18s, Python 3.13, no network) — includes the Phase-8 agent
+- **Backend: 97 passed** (`pytest`, ~18s, Python 3.13, no network) — includes the Phase-8 agent
   reliability + reasoning-trace tests, the Phase-9 front-of-loop (MAIA triage → human accept) tests,
   the Phase-10 machine-agnostic catalog + real-data telemetry tests, the Phase-11 ISA-95 / UNS /
   connector-catalog tests, the Phase-12 outbox-relay + dead-letter + deep-health + correlation-id
@@ -18,7 +18,14 @@ cd frontend && npm run e2e     # UI e2e (Playwright; needs servers up + `npx pla
   server tests (spec compliance + the read-only interop guarantee), and the Phase-16 **Recovery
   Forecaster** tests (predicts a relapse before the fault fires; advisory — never changes state), and
   the Phase-21 **knowledge learning-loop** tests (capture → role-gated human review → authoritative
-  reuse; the agent can never approve its own lesson), and the Phase-22/23 **reliability-statistics** tests
+  reuse; the agent can never approve its own lesson), the Phase-25 **safety allowlist invariant** (every
+  registered tool is in a safe action class, every write is gated) + the no-stuck-proposal / unexpected-
+  error gateway tests, the Phase-26 **provenance & evidence-trust** tests (GRADE-style evidence tiering,
+  the closure-provenance record + proposed-vs-executed reconciliation, and the H8 audit-sequence
+  uniqueness constraint), the Phase-27 **counterfactual contract-calibration** tests (a deterministic
+  replay proving any window ≤16 would have false-closed before the cycle-17 relapse), and the
+  the Phase-28 **hardening** tests (audit-chain detects deletion + reorder, outbox poison-event head-of-line
+  non-blocking, risk-scaled decision argmin, pinned SPRT values), and the Phase-22/23 **reliability-statistics** tests
   (the zero-failure demonstration-test identities, the **Wald SPRT** accept/reject/continue decisions with
   the no-premature-accept safety property, the machine/fault-scoped hazard read, and the incident
   assessment across lifecycle states; proven to never change state).

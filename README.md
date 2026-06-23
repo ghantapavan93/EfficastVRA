@@ -145,11 +145,12 @@ docker compose run --rm backend python -m app.cli seed
 
 | Doc | Purpose |
 |---|---|
+| [`docs/SYSTEM_OVERVIEW.md`](docs/SYSTEM_OVERVIEW.md) | **Start here** — the whole system in depth (stack, architecture, every feature, flow) **+ an honest critique & prioritized gap list** |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System design (C4), boundaries, data flow |
 | [`docs/adr/`](docs/adr/README.md) | Architecture Decision Records — the *why*, enforced by fitness functions |
 | [`docs/PRODUCT_SCOPE.md`](docs/PRODUCT_SCOPE.md) | What this is / is not |
 | [`docs/RECOVERY_CONTRACT.md`](docs/RECOVERY_CONTRACT.md) | The core primitive |
-| [`docs/RECOVERY_FORECASTING.md`](docs/RECOVERY_FORECASTING.md) | **New primitive** — predicts a false recovery *before* the fault recurs (advisory) |
+| [`docs/RECOVERY_FORECASTING.md`](docs/RECOVERY_FORECASTING.md) | **New primitive** — surfaces a degradation precursor that diverges *before* the fault recurs, as an early warning (advisory; a transform of one measured channel, not a learned probability) |
 | [`docs/STATE_MACHINE.md`](docs/STATE_MACHINE.md) | States, transitions, guards |
 | [`docs/AGENT_RESEARCH.md`](docs/AGENT_RESEARCH.md) / [`docs/AGENT_GRAPH.md`](docs/AGENT_GRAPH.md) | SOTA agent research (cited) & the implemented reasoning graph |
 | [`docs/MACHINE_AGNOSTIC.md`](docs/MACHINE_AGNOSTIC.md) / [`docs/REAL_DATA_INTEGRATION.md`](docs/REAL_DATA_INTEGRATION.md) | Any-machine contract catalog & the real-data / Efficast-API seams |
@@ -157,6 +158,7 @@ docker compose run --rm backend python -m app.cli seed
 | [`docs/AGENT_CAPABILITY_AUDIT.md`](docs/AGENT_CAPABILITY_AUDIT.md) / [`docs/MCP_INTEGRATION.md`](docs/MCP_INTEGRATION.md) | Top-grade agent capabilities vs. us (cited) & the read-only MCP server |
 | [`docs/CROSS_INDUSTRY_RESEARCH.md`](docs/CROSS_INDUSTRY_RESEARCH.md) | Cross-industry agent research → the **Decision Intelligence** layer (risk-adjusted economics + FMEA) |
 | [`docs/RELIABILITY_STATISTICS.md`](docs/RELIABILITY_STATISTICS.md) | **Recovery confidence** — zero-failure reliability-demonstration test + **Wald SPRT** (sequential accept/reject) + machine/fault-scoped bathtub-curve hazard |
+| [`docs/PROVENANCE.md`](docs/PROVENANCE.md) | **Closure provenance & evidence trust** — why the outcome was decided, evidence ranked by provenance tier, proposed-vs-executed reconciliation, audit integrity |
 | [`docs/ORGANIZATIONAL_LEARNING.md`](docs/ORGANIZATIONAL_LEARNING.md) | The **knowledge learning loop** — tribal knowledge → human-curated institutional memory (continual learning without weight updates) |
 | [`docs/SECURITY_MODEL.md`](docs/SECURITY_MODEL.md) / [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) | Gateway, authz, OT safety, threats |
 | [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) | Security · logging · auditability posture, mapped to IEC 62443 / ISO 27001 / SOC 2 / NIST / EU AI Act (live at `/api/governance`) |

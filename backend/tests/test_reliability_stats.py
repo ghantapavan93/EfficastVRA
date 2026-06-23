@@ -110,8 +110,11 @@ def test_sprt_bounds_and_decisions():
     # SAFETY-CRITICAL: with the shipped params the accept threshold falls AFTER the cycle-17 relapse, so
     # 14 clean cycles must NOT yet accept (the test never endorses the hero scenario's false recovery).
     mid = sprt_evaluate([False] * 14, **_SPRT)
-    assert mid["decision"] == "continue" and mid["clean_cycles_to_accept"] >= 1
-    assert sprt_evaluate([False] * 14, **_SPRT)["decided_at_cycle"] is None
+    # Pinned exact value (not just ">= 1"): ceil((B - 14·down)/down) = 4 more clean cycles to accept,
+    # so acceptance lands at cycle 18 — past the cycle-17 relapse, which is the whole safety point.
+    assert mid["decision"] == "continue" and mid["clean_cycles_to_accept"] == 4
+    assert mid["decided_at_cycle"] is None
+    assert sprt_evaluate([False] * 18, **_SPRT)["decision"] == "accept"  # boundary: 18 clean cycles accept
 
 
 def test_assess_includes_sprt_undecided_midwindow(session):
@@ -120,6 +123,7 @@ def test_assess_includes_sprt_undecided_midwindow(session):
     a = assess(session, inc)
     assert a["sprt"]["decision"] == "continue"            # not yet decided at cycle 14
     assert a["sprt"]["n"] == 14 and a["sprt"]["decided_at_cycle"] is None
+    assert a["sprt"]["clean_cycles_to_accept"] == 4       # pinned, not just non-zero
     assert "Forecaster" in a["sprt_summary"]               # honest precursor caveat
 
 

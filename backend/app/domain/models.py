@@ -18,7 +18,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import JSON
+from sqlalchemy import JSON, UniqueConstraint
 from sqlmodel import Field
 
 from app.domain.base import Base, id_factory, utcnow
@@ -566,6 +566,10 @@ class ToolExecution(Base, table=True):
 
 
 class AuditEvent(Base, table=True):
+    # The per-correlation sequence must be unique — so a concurrent writer (real on Postgres) fails loudly
+    # on a seq collision rather than silently forking the tamper-evident hash chain. (H8 hardening.)
+    __table_args__ = (UniqueConstraint("correlation_id", "seq", name="uq_audit_correlation_seq"),)
+
     id: str = Field(default_factory=id_factory("AUD"), primary_key=True)
     tenant_id: str = Field(index=True)
     plant_id: str = Field(index=True)

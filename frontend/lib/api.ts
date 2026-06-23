@@ -13,8 +13,10 @@ import type {
   MissionSummary,
   NotificationsView,
   OutcomeView,
+  ProvenanceView,
   ReasoningView,
   ReliabilityView,
+  SensitivityView,
   TimelineView,
   TroubleshootResult,
 } from "./types";
@@ -53,7 +55,15 @@ async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
     throw new ApiError(res.status, body.detail || res.statusText, body.code, body.stage);
   }
   if (res.status === 204) return undefined as T;
-  return res.json();
+  // Guard an empty/non-JSON 200 body — calling res.json() on it throws past TanStack's isError handling
+  // and white-screens the view. Return undefined for an empty body; surface a clear error otherwise.
+  const text = await res.text();
+  if (!text) return undefined as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new ApiError(res.status, "Malformed response from server (expected JSON).", "bad_response");
+  }
 }
 
 const post = (path: string, body?: unknown) =>
@@ -89,6 +99,8 @@ export const api = {
   forecast: (id: string) => req<ForecastView>(`/api/incidents/${id}/forecast`),
   decision: (id: string) => req<DecisionView>(`/api/incidents/${id}/decision`),
   reliability: (id: string) => req<ReliabilityView>(`/api/incidents/${id}/reliability`),
+  provenance: (id: string) => req<ProvenanceView>(`/api/incidents/${id}/provenance`),
+  sensitivity: (id: string) => req<SensitivityView>(`/api/incidents/${id}/sensitivity`),
   troubleshoot: (p: { fault_code?: string; machine_model?: string; q?: string }) => {
     const qs = new URLSearchParams();
     if (p.fault_code) qs.set("fault_code", p.fault_code);

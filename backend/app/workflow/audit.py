@@ -146,7 +146,7 @@ def drain_outbox(session: Session, *, limit: int = 200, sink=None) -> int:
         select(OutboxEvent)
         .where(OutboxEvent.status == "pending")
         .where((OutboxEvent.available_at == None) | (OutboxEvent.available_at <= now))  # noqa: E711
-        .order_by(OutboxEvent.available_at)  # type: ignore[arg-type]
+        .order_by(OutboxEvent.available_at, OutboxEvent.id)  # type: ignore[arg-type]  # stable tie-break
         .limit(limit)
     ).all()
     published = 0

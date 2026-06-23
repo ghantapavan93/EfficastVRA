@@ -39,7 +39,7 @@ export interface MissionSummary {
   origin_alert_id: string | null;
   contract_no: string | null;
   contract_version: number | null;
-  outcome_confidence: number;
+  recovery_progress: number;
   opened_at: string | null;
   updated_at: string | null;
   is_active: boolean;
@@ -400,6 +400,7 @@ export interface ReliabilityView {
     p1: number;
     alpha: number;
     beta: number;
+    basis?: string;
   };
   sprt_summary?: string;
   hazard?: {
@@ -416,6 +417,73 @@ export interface ReliabilityView {
   headline?: string;
   recommendation?: string;
   advisory: string;
+}
+
+export interface SensitivityView {
+  available: boolean;
+  incident_id: string;
+  reason?: string;
+  window_sequence?: number;
+  relapse_cycle?: number | null;
+  max_stable_streak?: number;
+  actual_required_stable_cycles?: number;
+  min_safe_window?: number | null;
+  margin_cycles?: number | null;
+  safe?: boolean;
+  sweep?: { required_stable_cycles: number; outcome: string; close_cycle: number | null; is_contract: boolean }[];
+  headline?: string;
+  verdict?: string;
+  advisory?: string;
+}
+
+export interface ProvenanceEvidence {
+  evidence_id: string;
+  kind: string | null;
+  tier: string;
+  tier_label: string;
+  rank: number;
+  source_kind: string | null;
+  source: string;
+  base_weight: number;
+  trust: number;
+  flags: string[];
+  valid: boolean;
+  status: string | null;
+  rationale: string;
+}
+
+export interface ProvenanceView {
+  available: boolean;
+  incident_id: string;
+  reason?: string;
+  state?: string;
+  outcome_type?: string | null;
+  closed?: boolean;
+  reopened_count?: number;
+  violated_conditions?: string[];
+  conditions?: { key: string; kind: string; op: string; status: string; label: string }[];
+  evidence?: ProvenanceEvidence[];
+  evidence_summary?: {
+    count: number;
+    mean_trust: number | null;
+    min_trust: number | null;
+    weakest: { evidence_id: string; tier: string; trust: number; flags: string[] } | null;
+  };
+  approvals?: { decided_by: string; decided_role: string; decision: string; reason: string; at: string | null }[];
+  interventions?: { sequence: number; kind: string; title: string; status: string }[];
+  reconciliation?: {
+    proposed: number;
+    executed: number;
+    failed: number;
+    denied: number;
+    unreconciled: { proposal_id: string; tool: string; issue: string }[];
+    orphan_executions: string[];
+    ok: boolean;
+  };
+  audit?: { ok: boolean; broken_at_seq: number | null; count: number };
+  trustworthy?: boolean;
+  summary?: string;
+  note?: string;
 }
 
 export interface TroubleshootResult {
@@ -453,6 +521,7 @@ export interface ForecastView {
   hypotheses?: ForecastHypothesis[];
   series?: { cycle: number; p_relapse: number }[];
   headline?: string;
+  basis?: string;
 }
 
 export interface MaiaAlert {

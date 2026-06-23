@@ -108,6 +108,18 @@ def _t_reliability(session: Session, args: dict) -> Any:
     return assess(session, _incident(session, args))
 
 
+def _t_provenance(session: Session, args: dict) -> Any:
+    from app.services.provenance import closure_provenance
+
+    return closure_provenance(session, _incident(session, args))
+
+
+def _t_sensitivity(session: Session, args: dict) -> Any:
+    from app.services.sensitivity import analyze
+
+    return analyze(session, _incident(session, args))
+
+
 def _t_knowledge(session: Session, _args: dict) -> Any:
     from app.services.knowledge import list_candidates
 
@@ -149,6 +161,10 @@ TOOLS: list[dict[str, Any]] = [
      "description": "Risk-adjusted decision view (advisory): cost/production exposure, expected cost of each option with a recommendation, and an FMEA (RPN)."},
     {"name": "get_reliability_assessment", "fn": _t_reliability, "inputSchema": _INCIDENT_ARG,
      "description": "Statistical confidence in the recovery verdict (advisory): zero-failure reliability-demonstration test (confidence vs. stable cycles, cycles needed for a target), window grade, and bathtub-curve hazard read."},
+    {"name": "get_closure_provenance", "fn": _t_provenance, "inputSchema": _INCIDENT_ARG,
+     "description": "Why the outcome was decided and whether it can be trusted: deterministic conditions, trust-weighted evidence, human approvals, interventions, proposed-vs-executed reconciliation, and audit-chain integrity."},
+    {"name": "get_contract_sensitivity", "fn": _t_sensitivity, "inputSchema": _INCIDENT_ARG,
+     "description": "Counterfactual contract calibration (advisory): replays the verifier over the real trajectory at different verification-window lengths — the minimum-safe window and which thresholds would have falsely closed before the relapse."},
     {"name": "list_knowledge", "fn": _t_knowledge, "inputSchema": {"type": "object", "properties": {}},
      "description": "Institutional knowledge base: candidate + human-approved lessons from past recoveries (with review status)."},
     {"name": "list_open_alerts", "fn": _t_open_alerts, "inputSchema": {"type": "object", "properties": {}},

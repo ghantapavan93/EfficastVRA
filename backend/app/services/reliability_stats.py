@@ -143,6 +143,8 @@ def sprt_evaluate(outcomes: list[bool], *, p0: float, p1: float, alpha: float, b
         "llr": round(llr, 3), "accept_bound": round(b_bound, 3), "reject_bound": round(a_bound, 3),
         "clean_cycles_to_accept": clean_to_accept,
         "p0": p0, "p1": p1, "alpha": alpha, "beta": beta,
+        "basis": ("p1 is a chosen indifference threshold (a design point), not a relapse rate estimated "
+                  "from data; the α/β error-rate guarantees are nominal under that hypothesis choice."),
     }
 
 

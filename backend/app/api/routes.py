@@ -207,6 +207,28 @@ def reliability(incident_id: str, session: Session = Depends(get_session)) -> di
     return assess(session, inc)
 
 
+@router.get("/incidents/{incident_id}/provenance")
+def provenance(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """Closure provenance — why the outcome was decided and whether it can be trusted: the deterministic
+    conditions, trust-weighted evidence, human approvals, interventions, a proposed-vs-executed
+    reconciliation, and audit-chain integrity. Read-only; assembled independently of the LLM."""
+    from app.services.provenance import closure_provenance
+
+    inc = _incident(session, incident_id)
+    return closure_provenance(session, inc)
+
+
+@router.get("/incidents/{incident_id}/sensitivity")
+def sensitivity(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """Counterfactual contract calibration — replays the deterministic verifier over the real trajectory
+    at a sweep of verification-window lengths to find the minimum-safe window and which thresholds would
+    have falsely closed before the relapse. Advisory — never changes the verdict."""
+    from app.services.sensitivity import analyze
+
+    inc = _incident(session, incident_id)
+    return analyze(session, inc)
+
+
 # ── front of the loop: MAIA alerts + agent diagnosis ──────────────────────────
 @router.get("/alerts")
 def alerts(session: Session = Depends(get_session)) -> dict:

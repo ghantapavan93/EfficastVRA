@@ -50,6 +50,23 @@ def test_drain_outbox_dead_letters_after_max_attempts(session):
     assert "broker down" in evt.last_error
 
 
+def test_poison_event_does_not_block_healthy_ones(session):
+    """Head-of-line non-blocking: a failing (poison) event must not stop a healthy event enqueued behind
+    it from publishing in the same drain — the relay processes the whole batch, parking only the poison."""
+    publish_outbox(session, topic="poison", payload={}, correlation_id="cor-p")       # enqueued first
+    publish_outbox(session, topic="recovery.decision", payload={}, correlation_id="cor-g")
+
+    def selective_sink(topic, _p, _c):
+        if topic == "poison":
+            raise RuntimeError("broker rejects poison")
+
+    published = drain_outbox(session, sink=selective_sink)
+    assert published == 1  # the healthy one went through despite the poison ahead of it
+    rows = {r.topic: r for r in session.exec(select(OutboxEvent)).all()}
+    assert rows["recovery.decision"].status == "published"
+    assert rows["poison"].status == "pending" and rows["poison"].attempts == 1  # parked for retry, not blocking
+
+
 def test_health_reports_db_and_outbox(client):
     body = client.get("/health").json()
     assert body["status"] == "ok"

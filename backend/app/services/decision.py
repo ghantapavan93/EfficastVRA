@@ -31,9 +31,10 @@ CONTINGENCY_PREP_COST = float(os.getenv("VRA_CONTINGENCY_PREP_COST", "300"))  # 
 
 # Reliability assumptions for a false closure (fault recurs after a premature close).
 _RELAPSE_DOWNTIME_H = 2.5          # re-diagnose + the real fix
-_RELAPSE_SCRAP_UNITS = 80          # scrap before the recurrence is caught
+_RELAPSE_SCRAP_UNITS = 80          # scrap before the recurrence is caught (false closure — nobody watching)
 _PRESTAGED_DOWNTIME_H = 1.0        # part on hand + tech on standby → faster recovery
 _PRESTAGED_SCRAP_UNITS = 30
+_MONITORED_SCRAP_UNITS = 30        # scrap that still accrues during the relapse cycle before monitoring catches it
 
 
 def _usd(x: float) -> int:
@@ -77,7 +78,11 @@ def decide(session: Session, incident: Incident) -> dict:
 
     # ── 2. risk-adjusted options (expected cost) ──
     close_now = p_relapse * false_closure_cost
-    keep_monitoring = p_relapse * (_RELAPSE_DOWNTIME_H * DOWNTIME_COST_PER_HOUR)  # caught before shipping bad product → no quality escape
+    # Monitoring catches the relapse at recurrence (no quality escape), but scrap still accrues until
+    # detection — so it carries a scrap term too, consistent with the close-now model (fixes the bias
+    # where dropping scrap made monitoring look artificially cheap).
+    keep_monitoring = p_relapse * (_RELAPSE_DOWNTIME_H * DOWNTIME_COST_PER_HOUR
+                                   + _MONITORED_SCRAP_UNITS * SCRAP_COST_PER_UNIT)
     pre_stage = CONTINGENCY_PREP_COST + p_relapse * (_PRESTAGED_DOWNTIME_H * DOWNTIME_COST_PER_HOUR
                                                      + _PRESTAGED_SCRAP_UNITS * SCRAP_COST_PER_UNIT)
     options = [
@@ -86,7 +91,7 @@ def decide(session: Session, incident: Incident) -> dict:
          "rationale": "Fastest, but you carry the full false-closure cost if the fault recurs."},
         {"action": "keep_monitoring", "label": "Keep monitoring to full window",
          "expected_cost_usd": _usd(keep_monitoring),
-         "rationale": "Catches a relapse before bad product ships (no quality escape); delays closure."},
+         "rationale": "Catches a relapse before bad product ships (no quality escape); some scrap still accrues until detection; delays closure."},
         {"action": "pre_stage_contingency", "label": "Pre-stage the bearing contingency",
          "expected_cost_usd": _usd(pre_stage),
          "rationale": "Reserve the part + ready a technician now, so a relapse is recovered fast."},
@@ -123,7 +128,9 @@ def decide(session: Session, incident: Incident) -> dict:
         "forecast_state": forecast_state, "impact": impact, "options": options,
         "recommendation": recommendation, "fmea": fmea,
         "fmea_note": ("Detection (D) improved by the Recovery Forecaster's precursor monitoring — lower D "
-                      "means lower RPN. The 'without agent' column shows the risk you'd carry blind."),
+                      "means lower RPN; the 'without agent' column shows the risk you'd carry blind. "
+                      "S/O/D scores here are illustrative PROTOTYPE_ASSUMPTIONs (not measured), so the "
+                      "agent-vs-blind delta is indicative, not an empirical benchmark."),
         "summary": summary,
         "advisory": "Advisory only — the deterministic evaluator decides closure; this informs the human's call.",
     }

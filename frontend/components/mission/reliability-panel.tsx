@@ -1,7 +1,7 @@
 "use client";
 
-import { Activity, BarChart3, Gauge, GitBranch, Sigma } from "lucide-react";
-import { useReliability } from "@/lib/hooks";
+import { Activity, BarChart3, Gauge, GitBranch, Sigma, SlidersHorizontal } from "lucide-react";
+import { useReliability, useSensitivity } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 import { Badge, Chip } from "@/components/forge/primitives";
 import { EmptyState, ErrorState, LoadingState } from "@/components/forge/states";
@@ -79,6 +79,7 @@ export function ReliabilityPanel({ incidentId }: { incidentId: string }) {
             <Chip>α=β={pct(data.sprt.alpha)}</Chip>
           </div>
           <p className="mt-2 text-sm text-ink">{data.sprt_summary}</p>
+          {data.sprt.basis && <p className="mt-1 text-[11px] text-ink-mut">{data.sprt.basis}</p>}
           {/* LLR position between the accept (down) and reject (up) bounds */}
           <div className="mt-3">
             <div className="mb-1 flex items-center justify-between text-[11px] text-ink-mut">
@@ -120,8 +121,43 @@ export function ReliabilityPanel({ incidentId }: { incidentId: string }) {
         </section>
       )}
 
+      {/* counterfactual contract calibration */}
+      <CalibrationCard incidentId={incidentId} />
+
       <p className="rounded-lg border border-line bg-surface-1 px-3 py-2 text-[11px] text-ink-mut">{data.advisory}</p>
     </div>
+  );
+}
+
+function CalibrationCard({ incidentId }: { incidentId: string }) {
+  const { data } = useSensitivity(incidentId, 4000);
+  if (!data || !data.available) return null;
+  const cellTone = (o: string) => (o === "false_close" ? "text-failure" : o === "caught_relapse" ? "text-verified" : "text-ink-mut");
+  return (
+    <section className="rounded-xl border border-line bg-surface-1 p-4">
+      <div className="label mb-2 flex items-center gap-1.5"><SlidersHorizontal className="h-3.5 w-3.5 text-ink-mut" aria-hidden /> Contract calibration (counterfactual replay)</div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge tone={data.safe ? "verified" : "failure"}>{data.safe ? "well calibrated" : "too short"}</Badge>
+        {data.relapse_cycle != null && <Chip>relapse @ cycle {data.relapse_cycle}</Chip>}
+        {data.min_safe_window != null && <Chip>min safe {data.min_safe_window}</Chip>}
+        <Chip>contract {data.actual_required_stable_cycles}</Chip>
+        {data.margin_cycles != null && <Chip>margin {data.margin_cycles >= 0 ? "+" : ""}{data.margin_cycles}</Chip>}
+      </div>
+      <p className="mt-2 text-sm text-ink">{data.verdict}</p>
+      {data.sweep && data.relapse_cycle != null && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {data.sweep.map((r) => (
+            <span key={r.required_stable_cycles}
+              className={cn("rounded-md border bg-surface-2 px-2 py-1 text-[11px]", r.is_contract ? "border-agent" : "border-line")}
+              title={r.outcome === "false_close" ? `would falsely close at cycle ${r.close_cycle}` : "catches the relapse (reopens)"}>
+              <span className="mono text-ink">{r.required_stable_cycles}</span>{" "}
+              <span className={cellTone(r.outcome)}>{r.outcome === "false_close" ? `✗@${r.close_cycle}` : r.outcome === "caught_relapse" ? "✓" : "—"}</span>
+            </span>
+          ))}
+        </div>
+      )}
+      <p className="mt-2 text-[11px] text-ink-mut">{data.advisory}</p>
+    </section>
   );
 }
 

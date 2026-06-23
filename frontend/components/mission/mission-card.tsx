@@ -34,10 +34,10 @@ export function MissionCard({ m, prominent = false }: { m: MissionSummary; promi
       </div>
       <div className="w-28 shrink-0">
         <div className="mb-1 flex justify-between text-[10px] text-ink-faint">
-          <span>confidence</span>
-          <span className="mono">{m.outcome_confidence}%</span>
+          <span>progress</span>
+          <span className="mono">{m.recovery_progress}%</span>
         </div>
-        <ProgressBar value={m.outcome_confidence} tone={m.outcome_confidence >= 100 ? "verified" : "agent"} />
+        <ProgressBar value={m.recovery_progress} tone={m.recovery_progress >= 100 ? "verified" : "agent"} />
       </div>
       <ArrowRight className="h-4 w-4 shrink-0 text-ink-faint transition-transform group-hover:translate-x-0.5 group-hover:text-ink" />
     </Link>
@@ -81,9 +81,9 @@ function ProminentCard({ m }: { m: MissionSummary }) {
         <Stat icon={Boxes} label="Order" value={m.order?.id ?? "—"} sub={m.order ? `${m.order.qty_remaining.toLocaleString()} units left` : undefined} />
         <Stat icon={TriangleAlert} label="Fault" value={m.fault_code ?? "—"} sub={m.contract_no ? `${m.contract_no} v${m.contract_version}` : "no contract"} />
         <div className="rounded-lg border border-line bg-raised px-3 py-2">
-          <div className="label">Outcome confidence</div>
-          <div className="mono mt-1 text-lg text-ink-hi">{m.outcome_confidence}%</div>
-          <div className="mt-1.5"><ProgressBar value={m.outcome_confidence} tone={m.outcome_confidence >= 100 ? "verified" : reopened ? "failure" : "agent"} /></div>
+          <div className="label">Recovery progress</div>
+          <div className="mono mt-1 text-lg text-ink-hi">{m.recovery_progress}%</div>
+          <div className="mt-1.5"><ProgressBar value={m.recovery_progress} tone={m.recovery_progress >= 100 ? "verified" : reopened ? "failure" : "agent"} /></div>
         </div>
       </div>
 

@@ -69,7 +69,7 @@ def mission_summary(session: Session, incident: Incident) -> dict:
     missing = len(missing_required(session, contract.id, "monitoring")) if contract else 0
     machine = _machine(session, incident.machine_id)
     order = session.get(ProductionOrder, incident.order_id) if incident.order_id else None
-    confidence = _confidence(incident, contract, session)
+    progress = _recovery_progress(incident, contract, session)
     return {
         "id": incident.id,
         "title": incident.title,
@@ -88,15 +88,17 @@ def mission_summary(session: Session, incident: Incident) -> dict:
         "origin_alert_id": incident.origin_alert_id,
         "contract_no": contract.contract_no if contract else None,
         "contract_version": contract.version if contract else None,
-        "outcome_confidence": confidence,
+        "recovery_progress": progress,
         "opened_at": _iso(incident.opened_at),
         "updated_at": _iso(incident.updated_at),
         "is_active": incident.state not in (WorkflowState.VERIFIED_RECOVERY, WorkflowState.CANCELLED),
     }
 
 
-def _confidence(incident: Incident, contract, session: Session) -> int:
-    # Prefer the agent's own calibrated confidence (recorded on its reasoning trace) when present.
+def _recovery_progress(incident: Incident, contract, session: Session) -> int:
+    """A 0–100 *progress* heuristic for list/header display — NOT a calibrated probability. It ramps with
+    stable cycles (and the agent's display confidence). The statistically grounded figure (zero-failure
+    demonstration + SPRT) lives in the Recovery Confidence tab / reliability assessment."""
     from app.agent.trace import latest_confidence
 
     c = latest_confidence(session, incident.id)

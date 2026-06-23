@@ -3,8 +3,11 @@
     reasoning output → schema → identity → plant scope → role → risk class → policy →
     human-approval → idempotency → circuit-breaker → audit → execute → result validation → transition
 
-Every operational side effect flows through :func:`execute`. Denials and executions are audited; a
-tool failure never advances workflow state (the caller's transaction can roll back cleanly).
+Every operational side effect flows through :func:`execute`. Denials and executions are audited. A tool
+failure marks its proposal ``failed`` and records a ``TOOL_EXECUTED`` (error) audit row — the failed
+attempt is kept as evidence, by design. It never advances workflow state: ``execute`` itself never calls
+``transition`` (the orchestrator transitions only *after* a successful ``execute`` returns), so a raised
+failure means no state change happens.
 """
 
 from __future__ import annotations
@@ -185,7 +188,8 @@ def execute(
         role=principal.role, input_data=raw_args, started_at=utcnow(),
     )
     try:
-        out: ToolOutput = spec.handler(ctx)
+        with session.begin_nested():  # savepoint: a handler's partial writes roll back atomically on failure
+            out: ToolOutput = spec.handler(ctx)
     except ToolError as e:
         circuit.on_failure(session, tool_name)
         texec.status = ToolStatus.ERROR
@@ -201,12 +205,18 @@ def execute(
         session.flush()
         raise GatewayError(str(e), status_code=409 if e.code in ("role_mismatch", "role_denied") else 400,
                            code=e.code, stage="execute") from e
-    except Exception as e:  # unexpected — preserve state, do not transition
+    except Exception as e:  # unexpected — record the failed attempt, resolve the proposal, do not transition
         circuit.on_failure(session, tool_name)
         texec.status = ToolStatus.ERROR
         texec.error_type = type(e).__name__
         texec.finished_at = utcnow()
         session.add(texec)
+        proposal.status = "failed"      # never leave a write proposal stuck in "proposed"
+        session.add(proposal)
+        record_audit(session, type=AuditEventType.TOOL_EXECUTED, correlation_id=correlation_id,
+                     actor=principal.username, role=principal.role,
+                     summary=f"{tool_name} errored: {type(e).__name__}", incident_id=incident_id,
+                     detail={"error": str(e), "code": "internal"})
         session.flush()
         raise GatewayError(f"tool execution error: {e}", status_code=500, code="internal",
                            stage="execute") from e

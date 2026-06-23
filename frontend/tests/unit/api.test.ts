@@ -5,7 +5,7 @@ describe("typed API client", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("sends the X-VRA-User identity header to same-origin /api", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ missions: [] }) });
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, text: async () => JSON.stringify({ missions: [] }) });
     vi.stubGlobal("fetch", fetchMock);
     setApiUser("a.lang");
     await api.missions();

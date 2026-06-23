@@ -191,7 +191,7 @@ export default function SystemPage() {
               <div className="label">Auditability</div>
               <p className="mt-1 text-xs text-ink">
                 Tamper-evident hash chain ·{" "}
-                {gov.auditability?.live_integrity?.checked ? (
+                {gov.auditability?.live_integrity?.checked && (gov.auditability.live_integrity.entries ?? 0) > 0 ? (
                   <span className={gov.auditability.live_integrity.intact ? "text-verified" : "text-failure"}>
                     {gov.auditability.live_integrity.intact ? "verified ✓" : "tampering detected"} ({gov.auditability.live_integrity.entries} entries)
                   </span>

@@ -29,9 +29,9 @@ export function StatusStrip() {
       <span className="text-ink-faint">·</span>
       <span className="text-ink-mut">{mission.next_action}</span>
       <div className="ml-auto flex w-48 items-center gap-2">
-        <span className="text-ink-faint">confidence</span>
-        <ProgressBar value={mission.outcome_confidence} tone={mission.outcome_confidence >= 100 ? "verified" : "agent"} />
-        <span className="mono text-ink-mut">{mission.outcome_confidence}%</span>
+        <span className="text-ink-faint">progress</span>
+        <ProgressBar value={mission.recovery_progress} tone={mission.recovery_progress >= 100 ? "verified" : "agent"} />
+        <span className="mono text-ink-mut">{mission.recovery_progress}%</span>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ from sqlmodel import Session, select
 
 from app.adapters.synthetic import SyntheticEfficastPort
 from app.auth import Principal
-from app.domain.enums import AuditEventType, KnowledgeStatus, Role, WorkflowState
+from app.domain.enums import ActionClass, AuditEventType, KnowledgeStatus, Role, WorkflowState
 from app.domain.models import (
     ActionProposal,
     AuditEvent,
@@ -47,6 +47,25 @@ def test_duplicate_action_idempotent(session: Session):
                           correlation_id=inc.correlation_id, incident_id=inc.id,
                           idempotency_key=f"req-evi-{c1.id}", port=port)
     assert out.source == "idempotent-replay"  # second use of the key replays, no new effect
+
+
+# ── H1: an unexpected tool error resolves the proposal to "failed", never stuck "proposed" ────
+def test_unexpected_tool_error_marks_proposal_failed(session: Session, monkeypatch):
+    svc, inc, c1 = to_monitoring(session)
+    sup = principal(session, "s.vega")
+    spec = REGISTRY["request_missing_evidence"]
+
+    def boom(_ctx):
+        raise ValueError("kaboom")
+
+    monkeypatch.setattr(spec, "handler", boom)
+    with pytest.raises(GatewayError) as ei:
+        gateway_execute(session, tool_name="request_missing_evidence", raw_args={"contract_id": c1.id},
+                        principal=sup, correlation_id=inc.correlation_id, incident_id=inc.id,
+                        port=SyntheticEfficastPort(session), idempotency_key="boom-1")
+    assert ei.value.status_code == 500 and ei.value.stage == "execute"
+    props = session.exec(select(ActionProposal).where(ActionProposal.idempotency_key == "boom-1")).all()
+    assert props and all(p.status == "failed" for p in props)  # resolved, not stuck "proposed"
 
 
 # ── Test 4 + 11: role authorization on approvals ──────────────────────────────
@@ -116,6 +135,20 @@ def test_model_failure_preserves_state(session: Session):
     assert inc.current_contract_id is None
 
 
+# ── Allowlist invariant: every runnable tool is in a known-safe class (not a name denylist) ───
+def test_every_registered_tool_is_in_a_safe_action_class():
+    """Inverts the safety check from a denylist to an allowlist: a newly-added dangerous tool fails this
+    even if its name isn't on any blocklist. Every tool the gateway can run must be in a safe class, and
+    every *write* tool must be reversible-automatic or human-approval-gated (never misclassified read-only)."""
+    safe = {ActionClass.READ_ONLY, ActionClass.REVERSIBLE_AUTOMATIC, ActionClass.APPROVAL_REQUIRED}
+    write_safe = {ActionClass.REVERSIBLE_AUTOMATIC, ActionClass.APPROVAL_REQUIRED}
+    for name, spec in REGISTRY.items():
+        assert spec.action_class in safe, f"{name}: unsafe action_class {spec.action_class}"
+        assert spec.action_class != ActionClass.PROHIBITED
+        if spec.is_write:
+            assert spec.action_class in write_safe, f"{name}: write tool must be gated, got {spec.action_class}"
+
+
 # ── Test 15: no machine-control tool / route / action exists ──────────────────
 def test_no_machine_control_exists(session: Session):
     # No registered tool is a prohibited action.
@@ -161,11 +194,19 @@ def test_audit_completeness_and_knowledge_pending(session: Session):
     assert len(transitions) >= 10
     assert all(a.prev_state and a.new_state for a in transitions)  # every transition fully recorded
 
-    # Every executed write produced a proposal + a tool-execution row (passed the gateway).
+    # INVARIANT (not mere existence): after a clean run no write proposal is stuck in "proposed" — every
+    # one resolved to executed/failed — and every executed write has a matching tool-execution row (so it
+    # provably went *through* the gateway rather than around it).
     proposals = session.exec(select(ActionProposal)).all()
     execs = session.exec(select(ToolExecution)).all()
     assert proposals and execs
     assert all(p.action_class is not None for p in proposals)
+    write_proposals = [p for p in proposals if p.action_class != ActionClass.READ_ONLY]
+    assert write_proposals, "the scenario performs writes"
+    unresolved = [(p.tool_name, p.status) for p in write_proposals if p.status not in ("executed", "failed")]
+    assert not unresolved, f"write proposals left unresolved: {unresolved}"
+    exec_proposal_ids = {e.proposal_id for e in execs}
+    assert all(p.id in exec_proposal_ids for p in write_proposals if p.status == "executed")
     assert any(a.type == AuditEventType.TOOL_EXECUTED for a in audits)
 
     kc = session.exec(select(KnowledgeCandidate).where(KnowledgeCandidate.incident_id == inc.id)).first()

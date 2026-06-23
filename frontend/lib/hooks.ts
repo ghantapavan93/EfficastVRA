@@ -90,6 +90,24 @@ export function useReliability(id: string, refetchInterval?: number) {
   });
 }
 
+export function useProvenance(id: string, refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({
+    queryKey: ["provenance", id, username],
+    queryFn: () => api.provenance(id),
+    refetchInterval,
+  });
+}
+
+export function useSensitivity(id: string, refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({
+    queryKey: ["sensitivity", id, username],
+    queryFn: () => api.sensitivity(id),
+    refetchInterval,
+  });
+}
+
 export function useAlerts(refetchInterval?: number) {
   const { username } = useRole();
   return useQuery({ queryKey: ["alerts", username], queryFn: api.alerts, refetchInterval });
@@ -148,7 +166,7 @@ export function useTriageAlert() {
 export function useRecoveryActions(id: string) {
   const qc = useQueryClient();
   const invalidate = () => {
-    for (const key of ["missions", "mission", "contract", "evidence", "timeline", "outcome", "audit", "reasoning", "diagnosis", "alerts", "forecast", "decision", "reliability"]) {
+    for (const key of ["missions", "mission", "contract", "evidence", "timeline", "outcome", "audit", "reasoning", "diagnosis", "alerts", "forecast", "decision", "reliability", "provenance", "sensitivity"]) {
       qc.invalidateQueries({ queryKey: key === "missions" ? ["missions"] : [key, id] });
     }
   };

@@ -55,6 +55,25 @@ recovery before the fault fires**; the relapse instead drives it to *reject*. Li
 faults, it is **blind to a latent precursor** — the panel says so and defers to the
 [Recovery Forecaster](RECOVERY_FORECASTING.md), which *does* watch the precursor.
 
+## 2b. Counterfactual contract calibration (deterministic replay)
+The statistics above are *probabilistic*. This is the **deterministic** complement: `app/services/sensitivity.py`
+replays the verifier over the **recorded trajectory** at a sweep of verification-window lengths and reports
+what the verdict *would* have been. On the hero relapse:
+
+| window N | outcome |
+|---:|---|
+| 5, 10, 15 | **FALSE-CLOSE** at cycle N (declares recovery before the fault returns) |
+| 17, 20, 25, **30**, 40, 50 | **catches the relapse** (reopens) |
+
+So the **minimum safe window = the relapse cycle (17)**; the contract's **30** clears it by **+13 cycles**;
+anything **≤ 16 would have been fooled.** Together the two layers bracket calibration:
+
+> **17** (deterministic — to catch *this* relapse) ≤ **30** (the contract) ≤ **59** (statistical — for 95% confidence)
+
+`GET /api/incidents/{id}/sensitivity` · MCP `get_contract_sensitivity` · the **Recovery Confidence** tab's
+calibration card · tests `tests/test_sensitivity.py`. Advisory, read-only — it grades the window; it never
+changes the verdict.
+
 ## 3. Hazard read — where on the bathtub curve does this fault live?
 **Machine/fault-scoped** — relapse cycles are derived from the history of machines of the *same model*
 (plus any documented prior for the fault code), never hard-coded, so this generalises to any machine. In
