@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from sqlmodel import Session, select
 
-from app.domain.enums import WorkflowState
+from app.domain.enums import TERMINAL_STATES, WorkflowState
 from app.domain.models import (
     ActionProposal,
     ApprovalDecision,
@@ -53,15 +53,16 @@ def _reconcile(session: Session, incident: Incident) -> dict:
     ).all()
     exec_proposal_ids = {e.proposal_id for e in execs if e.proposal_id}
     proposal_ids = {p.id for p in proposals}
+    terminal = incident.state in TERMINAL_STATES  # a 'proposed' action is only a discrepancy once closed
 
     unreconciled: list[dict] = []
     for p in proposals:
         if p.status == "executed" and p.id not in exec_proposal_ids:
             unreconciled.append({"proposal_id": p.id, "tool": p.tool_name,
                                  "issue": "marked executed but has no tool-execution record"})
-        elif p.status == "proposed":
+        elif p.status == "proposed" and terminal:
             unreconciled.append({"proposal_id": p.id, "tool": p.tool_name,
-                                 "issue": "proposed but never resolved (no execute/deny/fail)"})
+                                 "issue": "left unresolved at closure (no execute/deny/fail)"})
     orphans = [e.id for e in execs if e.proposal_id and e.proposal_id not in proposal_ids]
 
     return {
@@ -124,8 +125,11 @@ def closure_provenance(session: Session, incident: Incident) -> dict:
     audit = verify_audit_chain(session, incident.correlation_id)
 
     closed = incident.state == WorkflowState.VERIFIED_RECOVERY
-    trustworthy = (audit.get("ok") and reconciliation["ok"]
-                   and (evidence_summary["min_trust"] or 0) > 0)
+    # Trust the closure on the *validated* (contributing) evidence — a superseded/rejected first attempt
+    # (trust 0) is part of the history but must not drag a correctly-verified incident to "untrustworthy".
+    contributing = [e["trust"] for e in evidence if e["valid"]]
+    min_contributing_trust = min(contributing) if contributing else 0.0
+    trustworthy = bool(audit.get("ok") and reconciliation["ok"] and min_contributing_trust > 0)
 
     if closed:
         summary = (

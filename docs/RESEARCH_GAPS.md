@@ -37,6 +37,24 @@ See [`EFFICAST_EVIDENCE_LEDGER.md`](EFFICAST_EVIDENCE_LEDGER.md). Everything tag
 from the supplied screenshots/landing image; everything tagged `INFERRED`/`UNKNOWN`/
 `PROTOTYPE_ASSUMPTION` is **not** asserted as fact about Efficast's real product or internals.
 
+## Discovery questions — Efficast‑internal unknowns (to confirm, not assert)
+
+Surfaced by the 12 discovery questions (answered in [`DISCOVERY_QA.md`](DISCOVERY_QA.md)). These concern
+Efficast's *own* product/customers and cannot be verified by us; the prototype asserts none of them.
+
+| # | Open question about Efficast | Assumption used | Confidence |
+|---|---|---|---|
+| D1 | What work stays manual after MAIA recommends/closes? | physical repair + human "it's fixed" judgment + WO close are manual; verification is the gap | INFERRED |
+| D2 | Does MAIA prove production *recovered* after a WO is closed (vs just closing it)? | it closes; post‑close recovery proof is the gap we fill | INFERRED |
+| D3 | Does Efficast auto‑reopen on fault recurrence within a window? | unknown | UNKNOWN |
+| D4 | Does MAIA hold long‑running incident state across shifts? | unknown | UNKNOWN |
+| D6 | What coordination still happens in WhatsApp/calls/spreadsheets post‑alert? | ad‑hoc triage/evidence/approval | INFERRED |
+| D8 | Does Efficast unify machine/production/quality/lot/worker/planner into one incident? | unknown | UNKNOWN |
+| D10 | Where in Efficast's architecture would a recovery agent sit? | as a read‑only verification layer + verdict publish‑back | INFERRED |
+
+**Resolution path:** a discovery call with Efficast. Until then, our claims are scoped to *our* system
+(proven by tests) and the integration is a *proposal* (`EFFICAST_INTEGRATION_SPEC.md`), not a contract.
+
 ## Re-verification log
 
 Web tools recovered later in the build; the following were verified independently (2026-06-21):

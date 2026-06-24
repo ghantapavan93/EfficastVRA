@@ -3,9 +3,11 @@
 import { useEffect } from "react";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 
-/** App-segment error boundary — a malformed payload or render error renders this instead of a white
- * screen. On a factory floor, an operator must see a clear "something went wrong" with a retry, not a
- * blank page. The backend remains the source of truth; this is purely a client-side safety net. */
+/** App-segment error boundary — catches **synchronous render errors** (e.g. a component dereferencing a
+ * malformed/partial payload) and shows a clear retry instead of a white screen. NOTE: by React's design
+ * it does NOT catch errors thrown in event handlers or async callbacks, and query errors are surfaced as
+ * each panel's inline ErrorState (TanStack `isError`), not thrown here — so this is the last-resort net
+ * for render throws, not a catch-all. The backend remains the source of truth. */
 export default function AppError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     // Surface to the console for diagnostics (a real deployment would ship this to an error tracker).

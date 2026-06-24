@@ -71,9 +71,9 @@ export function VerificationTimeline({ incidentId }: { incidentId: string }) {
   useEffect(() => {
     if (reopened && !announced.current) {
       announced.current = true;
-      announce("Recovery Contract violated at cycle 17. Work completed. Recovery not proven. Incident reopened automatically.");
+      announce(`Recovery Contract violated at cycle ${recurrence?.cycle_index ?? "?"}. Work completed. Recovery not proven. Incident reopened automatically.`);
     }
-  }, [reopened]);
+  }, [reopened, recurrence?.cycle_index]);
 
   if (isLoading) return <LoadingState label="Loading verification timeline" />;
   if (isError || !data) return <ErrorState message="Could not load the timeline." onRetry={() => refetch()} />;

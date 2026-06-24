@@ -91,16 +91,18 @@ function Header({ data }: { data: ReasoningView }) {
         <Chip>{data.step_count} steps</Chip>
         {data.provider && <Chip>{data.provider}</Chip>}
         {data.confidence != null && (
-          <Badge tone={confidenceTone(data.confidence)}>
-            recovery confidence {Math.round(data.confidence * 100)}%
-          </Badge>
+          <span title="Heuristic display aid — uncalibrated. Closure is decided by the deterministic evaluator, not this number.">
+            <Badge tone={confidenceTone(data.confidence)}>
+              recovery confidence {Math.round(data.confidence * 100)}% · heuristic
+            </Badge>
+          </span>
         )}
       </div>
     </div>
   );
 }
 
-/** A small, accessible sparkline of the agent's calibrated recovery confidence over the trace. */
+/** A small, accessible sparkline of the agent's (heuristic, uncalibrated) recovery confidence. */
 function ConfidenceTrajectory({ steps }: { steps: ReasoningStep[] }) {
   const pts = steps.filter((s) => s.confidence != null) as (ReasoningStep & { confidence: number })[];
   if (pts.length < 2) return null;

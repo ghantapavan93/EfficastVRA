@@ -73,7 +73,7 @@ def list_traces(session: Session, incident_id: str) -> list[AgentReasoningTrace]
 
 
 def latest_confidence(session: Session, incident_id: str) -> Optional[float]:
-    """Most recent calibrated confidence the agent emitted for this incident, if any."""
+    """Most recent (heuristic, uncalibrated) confidence the agent emitted for this incident, if any."""
     row = session.exec(
         select(AgentReasoningTrace)
         .where(AgentReasoningTrace.incident_id == incident_id)

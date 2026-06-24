@@ -335,7 +335,7 @@ class RecoveryAgentGraph:
         *, cycle: Optional[int] = None, kind: str = "observe",
     ) -> float:
         """Record an observation/reflection over the deterministic evaluator's verdict and return the
-        calibrated recovery confidence. Called at salient moments during monitoring."""
+        (heuristic, uncalibrated) recovery confidence. Called at salient moments during monitoring."""
         c = conf.recovery_confidence(result)
         label = conf.confidence_label(c)
 

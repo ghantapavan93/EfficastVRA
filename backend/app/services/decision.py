@@ -119,13 +119,20 @@ def decide(session: Session, incident: Incident) -> dict:
         m["rpn_without_agent"] = m["severity"] * m["occurrence"] * m["detection_without_agent"]
     fmea.sort(key=lambda m: m["rpn"], reverse=True)
 
-    summary = (f"At {round(p_relapse * 100)}% relapse risk ({forecast_state}), false-closure exposure is "
-               f"~${_usd(false_closure_cost):,}. {recommendation['label']} minimises expected cost. "
-               "The agent's forecaster cuts detection RPN materially (see FMEA).")
+    # When there is no live forecast (incident closed/reopened/pre-monitoring), p_relapse is a neutral
+    # 0.5 default — say so, so the dollar figures aren't read as a calibrated live estimate.
+    indicative = forecast_state != "live"
+    caveat = (" — INDICATIVE: no live forecast for this incident state, p_relapse is a neutral default"
+              if indicative else "")
+    summary = (f"At {round(p_relapse * 100)}% relapse risk ({forecast_state}{caveat}), false-closure "
+               f"exposure is ~${_usd(false_closure_cost):,}. {recommendation['label']} minimises expected "
+               "cost. The agent's forecaster cuts detection RPN materially (see FMEA).")
+    if indicative:
+        recommendation["headline"] = "Indicative only (no live forecast): " + recommendation["headline"]
 
     return {
         "available": True, "incident_id": incident.id, "p_relapse": p_relapse,
-        "forecast_state": forecast_state, "impact": impact, "options": options,
+        "forecast_state": forecast_state, "indicative": indicative, "impact": impact, "options": options,
         "recommendation": recommendation, "fmea": fmea,
         "fmea_note": ("Detection (D) improved by the Recovery Forecaster's precursor monitoring — lower D "
                       "means lower RPN; the 'without agent' column shows the risk you'd carry blind. "

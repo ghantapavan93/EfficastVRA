@@ -177,10 +177,39 @@ matter if someone took this to production." Each item has `file:line` evidence.
 > decision argmin, pinned SPRT values); and a forecaster `lead_cycles` off-by-one (truthiness at cycle 0)
 > is fixed.
 >
-> Still open: **M2** (contract-derived UI thresholds), **M4** (troubleshoot history gating / UI badge tone),
-> assorted **LOW**, and the **MISSING** infra (real authn/multi-tenancy, durable scheduler + outbox worker,
-> model lifecycle, telemetry provenance, semantic-embedding RAG) — the items that need a Postgres/broker
-> environment to build *and verify* honestly. Findings are kept as the record.
+> **Update 4 (second, deeper adversarial pass — verified the fixes + found new gaps):** a fresh review
+> independently confirmed H1/H7/H8 hold, then found gaps the first pass missed. **Fixed:** *cross-fault
+> blindness* (`is_stable_observation` now treats **any** fault as non-stable, so "stable" means genuinely
+> fault-free — the prior pass demonstrated a metric-nominal relapse could false-close); the contract
+> builder now **refuses a spec that doesn't test the originating fault's non-recurrence** (a vacuous
+> contract was demonstrably a false-closure path); the generic **`/api/tools/{name}` endpoint** (it
+> raised NameError → 500 on every call) now works; the **audit hash now signs the attribution fields**
+> (incident/contract/plant/model/prompt version) so a verdict can't be silently re-attributed; two
+> provenance **false positives** fixed (pending evidence is discounted not zeroed; in-flight proposals are
+> only a discrepancy at closure); the agent "recovery confidence" / "diagnostic confidence" are now
+> labelled **heuristic** (residual H4); reconciliation re-scoped to "internal consistency, not proof of
+> authorization" (H-C); + small robustness polish and a dead-code removal.
+>
+> Still open (honestly deferred): **C2** stale-evidence TOCTOU (re-check freshness at closure — matters
+> once the wall-clock scheduler exists); **M-A** quality gate fail-open when a contract omits the
+> first-piece condition; **M-B** the live window length is hardcoded 30 vs. the contract spec; **M-C**
+> the knowledge-candidate text is hardcoded F27/BR-6205; plus **M2/M4**, assorted **LOW**, and the
+> **MISSING** infra (real authn/multi-tenancy, durable scheduler + outbox worker, telemetry provenance,
+> semantic-embedding RAG) — the items needing a Postgres/broker environment to build *and verify*
+> honestly. Findings are kept as the record.
+>
+> **Update 5 (third audit pass — Phase 33, two deep agents: frontend + backend).** Fixed: **M‑A** (quality
+> gate now fails closed and requires a `PASSED` quality condition, generalised off the `first_piece`
+> literal); **M‑B** (window opened from the contract spec, floored at 10); **M3** (RAG conflict dedup keyed
+> on document/revision/section); **M4** (troubleshoot UI badge tones from real approval status + softened
+> claim); **N1** (approval `decision` is validated — no more silent coercion to REJECT); **N2** (Decision
+> Intelligence flags `indicative` when there's no live forecast, so the dollar figures aren't read as
+> calibrated); **N4** (provenance `trustworthy` weighs only the *validated* evidence, so a superseded first
+> attempt no longer marks a good closure untrustworthy); plus frontend: the **OutcomePanel partial‑data
+> crash**, the **`.glass` opaque fallback** (older engines no longer render transparent chrome), faint‑label
+> contrast, the progress bar's verified tone gated on real closure, and machine‑agnostic outcome/a11y
+> labels. Still deferred: **M‑C**, **C2**, the inventory‑reservation‑outside‑gateway (exploit closed), and
+> the infra batch.
 
 ### HIGH — correctness or claim-integrity
 - **H1 — Gateway doesn't roll back its own flushed rows on an unexpected exception.** `gateway/gateway.py` flushes `ActionProposal` + audit rows, then re-raises without rollback; "clean rollback" is left to the caller and is never exercised by a test. `RecoveryService.advance()` calls the gateway mid-loop after already transitioning state. *Fix: own a savepoint and roll back to it before re-raising.*
@@ -195,7 +224,7 @@ matter if someone took this to production." Each item has `file:line` evidence.
 - **M4 — `troubleshoot` claims "every line approval-checked & fresh"**, but `history`/`what_worked` are ungated and `what_worked = history[0]` trusts an unordered query; the UI badges every procedure green regardless of real status.
 - **M5 — Invalid `decision` string silently becomes REJECT** (`knowledge.py`), burning the one-shot review. Validate `decision ∈ {approve, reject}` → 422.
 - **M6 — No frontend error boundary** — a malformed payload or a `res.json()` on an empty 200 white-screens the app. Add `error.tsx` + `global-error.tsx`.
-- **M7 — Polling UI has no staleness/offline signal** — a defined `OfflineState` is never rendered, so frozen numbers look live when the backend drops.
+- **M7 — Polling UI has no staleness/offline signal** — *FIXED (Phase 31):* a live **Live / Stale / Offline** connection indicator now renders in the command bar (driven by `dataUpdatedAt` + `navigator.onLine`), so a frozen screen no longer reads as live.
 - **M8/M9/M10 — tests assert too little:** a "flip" test that accepts any option; an outbox dead-letter test that never proves head-of-line non-blocking; a tamper badge that reads "verified" on an **empty** chain (`count: 0` ⇒ `ok: true`) and tests that only mutate a field (never delete/reorder rows).
 
 ### MISSING for a real deployment (beyond disclosed caveats)

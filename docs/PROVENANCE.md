@@ -43,13 +43,19 @@ hide behind four fresh sensor reads.
 Verified live (hero scenario): *Recovery VERIFIED — 7 conditions evaluated, 5 evidence items (mean trust
 0.70), 3 approvals, proposed↔executed reconciled, audit chain intact (64 entries).*
 
-## 3. Reconciliation — "logs alone are not proof"
-Self-reported success is not proof of action. The reconciler **independently** compares every
-`ActionProposal` against the `ToolExecution` records: it flags any proposal that claims `executed` with
-no execution row, any proposal stuck `proposed`, and any execution with **no owning proposal** (a side
-effect that bypassed the gateway's proposal step). On a clean run: *12 proposed / 12 executed, 0
-unreconciled, 0 orphans*. This is the runtime complement to the gateway's allowlist invariant (H7) and the
-savepoint-isolated failure path (H1).
+## 3. Reconciliation — internal consistency of the action log
+The reconciler **independently** compares every `ActionProposal` against the `ToolExecution` records: it
+flags any proposal that claims `executed` with no execution row, any proposal left unresolved *at
+closure*, and any execution with **no owning proposal** (a side effect that skipped the proposal step).
+On a clean run: *12 proposed / 12 executed, 0 unreconciled, 0 orphans*. This is the runtime complement to
+the gateway's allowlist invariant (H7) and the savepoint-isolated failure path (H1).
+
+**Honest scope (don't overclaim):** this proves the gateway's two tables are *internally consistent* — it
+does **not** by itself prove an action was *authorized*. A bypass that wrote both a fake proposal and a
+matching execution would reconcile clean, and the closure's own direct side effects (lot disposition, the
+terminal state transition) are orchestrator writes, not tools, so they don't appear as executions. The
+stronger guarantees come from the gateway choke point + the tamper-evident audit chain; reconciliation is
+the consistency check on top, not a standalone proof of legitimacy.
 
 ## Why this is safe (and the right kind of "trust")
 - **Independent of the LLM.** Provenance is built from the deterministic verifier, the gateway's

@@ -9,7 +9,7 @@ cd frontend && npm run e2e     # UI e2e (Playwright; needs servers up + `npx pla
 ```
 
 ## Results (this build)
-- **Backend: 97 passed** (`pytest`, ~18s, Python 3.13, no network) — includes the Phase-8 agent
+- **Backend: 102 passed** (`pytest`, ~18s, Python 3.13, no network) — includes the Phase-8 agent
   reliability + reasoning-trace tests, the Phase-9 front-of-loop (MAIA triage → human accept) tests,
   the Phase-10 machine-agnostic catalog + real-data telemetry tests, the Phase-11 ISA-95 / UNS /
   connector-catalog tests, the Phase-12 outbox-relay + dead-letter + deep-health + correlation-id
@@ -25,11 +25,14 @@ cd frontend && npm run e2e     # UI e2e (Playwright; needs servers up + `npx pla
   uniqueness constraint), the Phase-27 **counterfactual contract-calibration** tests (a deterministic
   replay proving any window ≤16 would have false-closed before the cycle-17 relapse), and the
   the Phase-28 **hardening** tests (audit-chain detects deletion + reorder, outbox poison-event head-of-line
-  non-blocking, risk-scaled decision argmin, pinned SPRT values), and the Phase-22/23 **reliability-statistics** tests
+  non-blocking, risk-scaled decision argmin, pinned SPRT values), the Phase-29 **verifier-robustness** tests
+  (any fault breaks the stable streak; the builder refuses a contract that doesn't test the originating fault;
+  the generic gateway tool endpoint works), and the Phase-22/23 **reliability-statistics** tests
   (the zero-failure demonstration-test identities, the **Wald SPRT** accept/reject/continue decisions with
   the no-premature-accept safety property, the machine/fault-scoped hazard read, and the incident
   assessment across lifecycle states; proven to never change state).
-- **Frontend: 22 passed** (`vitest run`, 7 files) — includes the Agent Reasoning and Agent Diagnosis
+- **Frontend: 24 passed** (`vitest run`, 8 files) — includes the OutcomePanel partial-data and api empty-body
+  robustness tests, and the Agent Reasoning and Agent Diagnosis
   panel tests.
 - **UI e2e**: 2 Playwright specs authored (`tests/e2e/recovery.spec.ts`) — run against live servers.
 - **Live functional verification**: the running UI was confirmed (via DOM inspection against the real

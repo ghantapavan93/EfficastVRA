@@ -101,13 +101,14 @@ def analyze(session: Session, incident: Incident) -> dict:
     margin = (actual_required - relapse_cycle) if relapse_cycle else None
     safe = relapse_cycle is None or actual_required >= relapse_cycle
 
-    if relapse_cycle:
+    if relapse_cycle is not None:
         headline = (f"Min safe window {min_safe_window} · contract {actual_required} · "
                     f"margin {margin:+d} cycles")
+        past = margin is not None and margin >= 0
         verdict = (
             f"The {actual_required}-cycle window is {'safely calibrated' if safe else 'TOO SHORT'}: it "
-            f"{'extends' if margin and margin >= 0 else 'falls'} {abs(margin)} cycle(s) "
-            f"{'past' if margin and margin >= 0 else 'short of'} the cycle-{relapse_cycle} relapse. Any "
+            f"{'extends' if past else 'falls'} {abs(margin)} cycle(s) "
+            f"{'past' if past else 'short of'} the cycle-{relapse_cycle} relapse. Any "
             f"window ≤ {relapse_cycle - 1} cycles would have declared a FALSE recovery before the fault "
             f"reappeared — exactly what the contract exists to prevent."
         )

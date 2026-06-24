@@ -6,12 +6,12 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlmodel import Session, select
 
 from app.api import serializers as S
 from app.auth import Principal, get_principal
-from app.composition import build_recovery_service
+from app.composition import build_port, build_reasoning, build_recovery_service
 from app.config import get_settings
 from app.db import get_session
 from app.domain.models import ApprovalRequirement, EvidenceRequirement, Incident, RecoveryContract
@@ -263,8 +263,15 @@ def knowledge(session: Session = Depends(get_session)) -> dict:
 
 
 class ReviewBody(BaseModel):
-    decision: str = "approve"
+    decision: str = "approve"  # approve | reject
     reason: str = ""
+
+    @field_validator("decision")
+    @classmethod
+    def _decision_explicit(cls, v: str) -> str:
+        if v not in ("approve", "reject"):
+            raise ValueError("decision must be exactly 'approve' or 'reject'")
+        return v
 
 
 @router.post("/knowledge/{candidate_id}/review")
@@ -343,8 +350,8 @@ def call_tool(tool_name: str, body: ToolCall, session: Session = Depends(get_ses
     correlation = inc.correlation_id if inc else "adhoc"
     out = gateway_execute(session, tool_name=tool_name, raw_args=body.args, principal=principal,
                           correlation_id=correlation, incident_id=body.incident_id,
-                          idempotency_key=body.idempotency_key, port=SyntheticEfficastPort(session),
-                          reasoning=get_reasoning_provider())
+                          idempotency_key=body.idempotency_key, port=build_port(session),
+                          reasoning=build_reasoning())
     session.commit()
     return out.model_dump(mode="json")
 
@@ -362,8 +369,15 @@ class EvidenceBody(BaseModel):
 
 
 class ApprovalBody(BaseModel):
-    decision: str = "approve"
+    decision: str = "approve"  # approve | reject
     reason: str = ""
+
+    @field_validator("decision")
+    @classmethod
+    def _decision_explicit(cls, v: str) -> str:
+        if v not in ("approve", "reject"):
+            raise ValueError("decision must be exactly 'approve' or 'reject'")
+        return v
 
 
 class TelemetryReading(BaseModel):

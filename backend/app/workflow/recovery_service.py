@@ -274,7 +274,8 @@ class RecoveryService:
         contract.status = "active"
         self.session.add(contract)
         open_window(self.session, incident_id=incident.id, contract=contract, sequence=1,
-                    required_stable_cycles=30, baseline=m.baseline)
+                    required_stable_cycles=max(10, int((contract.verification_window or {}).get(
+                        "required_stable_cycles", 30))), baseline=m.baseline)
         self.session.flush()
 
     def advance(self, incident: Incident, n: int = 1) -> dict:
@@ -377,7 +378,8 @@ class RecoveryService:
         contract.status = "active"
         self.session.add(contract)
         open_window(self.session, incident_id=incident.id, contract=contract, sequence=2,
-                    required_stable_cycles=30, baseline=m.baseline)
+                    required_stable_cycles=max(10, int((contract.verification_window or {}).get(
+                        "required_stable_cycles", 30))), baseline=m.baseline)
         self.session.flush()
 
     def finalize(self, incident: Incident) -> None:

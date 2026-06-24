@@ -15,6 +15,12 @@ describe("typed API client", () => {
     );
   });
 
+  it("treats an empty 200 body as undefined instead of throwing", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, text: async () => "" });
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(api.missions()).resolves.toBeUndefined();
+  });
+
   it("surfaces backend gateway denials as ApiError with stage + code", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,

@@ -98,9 +98,12 @@ def detect_conflicts(
                         plant_scope=plant_scope, approved_only=False, k=k * 3)
 
     conflicts: list[dict] = []
-    auth_ids = {c.content_hash for c in authoritative}
+    # Key on (document, revision, section) — NOT content hash. An obsolete revision that repeats a
+    # sentence verbatim from the approved chunk would share a content hash and be silently dropped,
+    # hiding exactly the stale-guidance conflict this function exists to surface.
+    auth_keys = {(c.document_id, c.revision, c.section) for c in authoritative}
     for c in everything:
-        if c.content_hash in auth_ids:
+        if (c.document_id, c.revision, c.section) in auth_keys:
             continue
         if c.approval_status != DocApprovalStatus.APPROVED.value or c.superseded_by:
             reason = (

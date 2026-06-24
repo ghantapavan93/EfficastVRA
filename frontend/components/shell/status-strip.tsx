@@ -21,7 +21,7 @@ export function StatusStrip() {
   if (!mission) return null;
 
   return (
-    <div className="flex h-9 shrink-0 items-center gap-4 border-t border-line bg-raised px-4 text-xs">
+    <div className="glass flex h-9 shrink-0 items-center gap-4 border-t border-line px-4 text-xs">
       <AgentActivityIndicator label={ACTIVITY[mission.state] ?? "Working"} />
       <Link href={`/missions/${mission.id}`} className="mono text-ink-mut hover:text-ink">
         {mission.id}
@@ -29,8 +29,8 @@ export function StatusStrip() {
       <span className="text-ink-faint">·</span>
       <span className="text-ink-mut">{mission.next_action}</span>
       <div className="ml-auto flex w-48 items-center gap-2">
-        <span className="text-ink-faint">progress</span>
-        <ProgressBar value={mission.recovery_progress} tone={mission.recovery_progress >= 100 ? "verified" : "agent"} />
+        <span className="text-ink-mut">progress</span>
+        <ProgressBar value={mission.recovery_progress} tone={mission.state === "VERIFIED_RECOVERY" ? "verified" : "agent"} />
         <span className="mono text-ink-mut">{mission.recovery_progress}%</span>
       </div>
     </div>

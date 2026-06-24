@@ -44,8 +44,8 @@ export function ProvenancePanel({ incidentId }: { incidentId: string }) {
             <span className="text-[11px] text-ink-mut">self-reported vs actual</span>
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            <Chip>{rec?.proposed} proposed</Chip>
-            <Chip>{rec?.executed} executed</Chip>
+            <Chip>{rec?.proposed ?? 0} proposed</Chip>
+            <Chip>{rec?.executed ?? 0} executed</Chip>
             {(rec?.failed ?? 0) > 0 && <Chip>{rec?.failed} failed</Chip>}
             {(rec?.denied ?? 0) > 0 && <Chip>{rec?.denied} denied</Chip>}
           </div>
@@ -54,7 +54,7 @@ export function ProvenancePanel({ incidentId }: { incidentId: string }) {
               {rec.unreconciled.map((u) => <li key={u.proposal_id}>⚠ {u.tool}: {u.issue}</li>)}
             </ul>
           )}
-          <p className="mt-2 text-[11px] text-ink-mut">Every side-effect must trace to a gateway proposal — logs alone are not proof.</p>
+          <p className="mt-2 text-[11px] text-ink-mut">Cross-checks that the gateway&apos;s proposal↔execution log is internally consistent (it does not, by itself, prove an action was authorized).</p>
         </div>
         <div className="rounded-xl border border-line bg-surface-1 p-4">
           <div className="label mb-2 flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-ink-mut" aria-hidden /> Audit chain</div>
@@ -62,7 +62,7 @@ export function ProvenancePanel({ incidentId }: { incidentId: string }) {
             <Badge tone={audit?.ok && (audit?.count ?? 0) > 0 ? "verified" : "failure"}>
               {audit?.ok ? "intact" : "broken"}
             </Badge>
-            <span className="mono text-[11px] text-ink-mut">{audit?.count} entries</span>
+            <span className="mono text-[11px] text-ink-mut">{audit?.count ?? 0} entries</span>
           </div>
           {audit && audit.broken_at_seq != null && (
             <p className="mt-2 text-[11px] text-failure">Tamper detected at seq {audit.broken_at_seq}.</p>

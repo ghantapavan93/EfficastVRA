@@ -120,10 +120,28 @@
       linear-gradient(90deg, var(--grid) 1px, transparent 1px);
     background-size: 32px 32px;
   }
+  /* Futuristic ambient canvas — layered signal-coloured glows behind the grid, giving the HUD depth. */
+  .app-canvas {
+    background-color: var(--forge-bg);
+    background-image:
+      radial-gradient(1100px 620px at 8% -12%, rgba(76, 125, 255, 0.12), transparent 60%),
+      radial-gradient(960px 560px at 106% -6%, rgba(245, 165, 36, 0.06), transparent 55%),
+      radial-gradient(840px 660px at 50% 120%, rgba(45, 212, 167, 0.055), transparent 62%);
+    background-attachment: fixed;
+  }
+  /* Frosted-glass surface for chrome (rails, bars, palettes) — translucent + blur + top sheen. */
+  .glass {
+    background: var(--surface-1); /* opaque fallback first — engines without color-mix keep readable chrome */
+    background: color-mix(in oklab, var(--surface-1) 72%, transparent);
+    backdrop-filter: blur(12px) saturate(1.15);
+    -webkit-backdrop-filter: blur(12px) saturate(1.15);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  }
   .card {
     background: var(--surface-1);
     border: 1px solid var(--line);
     border-radius: 14px;
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
   }
   .card-2 {
     background: var(--surface-2);
@@ -133,10 +151,42 @@
   .hairline {
     border-color: var(--line);
   }
+  /* Signal glows for hero/affirmative elements. */
+  .glow-agent {
+    box-shadow: 0 0 0 1px var(--agent-soft), 0 0 32px -8px rgba(76, 125, 255, 0.55);
+  }
+  .glow-verified {
+    box-shadow: 0 0 0 1px var(--verified-soft), 0 0 32px -8px rgba(45, 212, 167, 0.55);
+  }
+  /* Gradient ink for headline numbers / hero titles. */
+  .text-grad {
+    background: linear-gradient(94deg, var(--text-hi) 10%, var(--agent) 120%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* A slow conic sheen for the brand mark / verified seal. */
+  .sheen {
+    position: relative;
+    overflow: hidden;
+  }
+  .sheen::after {
+    content: "";
+    position: absolute;
+    inset: -40%;
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(255, 255, 255, 0.08) 40deg, transparent 80deg);
+    animation: spin 7s linear infinite;
+  }
   .skeleton {
     background: linear-gradient(90deg, var(--surface-1) 25%, var(--surface-2) 37%, var(--surface-1) 63%);
     background-size: 400% 100%;
     animation: shimmer 1.6s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 

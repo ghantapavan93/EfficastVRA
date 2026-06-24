@@ -10,6 +10,7 @@ from __future__ import annotations
 from sqlmodel import Session
 
 from app.domain.contract import RecoveryContractSpec
+from app.domain.enums import CompareOp
 from app.domain.models import (
     ApprovalRequirement,
     EvidenceRequirement,
@@ -21,6 +22,21 @@ from app.domain.models import (
 
 def persist_contract(session: Session, incident: Incident, spec: RecoveryContractSpec,
                      *, drafted_by: str = "DeterministicReasoningProvider") -> RecoveryContract:
+    # Deterministic guard against a vacuous contract: an incident with a known fault MUST be verified by a
+    # NOT_RECUR condition bound to *that* fault. Otherwise verification would pass while the originating
+    # fault is still firing (the false-closure the whole product exists to prevent). The agent drafts the
+    # contract, but this gate — not the LLM — refuses a spec that cannot detect the relapse it's verifying.
+    if incident.fault_code:
+        tests_fault = any(
+            c.op == CompareOp.NOT_RECUR and (c.fault_code or "") == incident.fault_code
+            for c in spec.all_conditions()
+        )
+        if not tests_fault:
+            raise ValueError(
+                f"contract does not test non-recurrence of the originating fault {incident.fault_code!r}; "
+                "refusing to persist a contract that cannot detect a relapse"
+            )
+
     contract = RecoveryContract(
         tenant_id=incident.tenant_id,
         plant_id=incident.plant_id,

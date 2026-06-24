@@ -29,8 +29,8 @@ export default function TroubleshootPage() {
         <h1 className="text-2xl font-semibold tracking-tight text-ink-hi">Troubleshoot</h1>
       </div>
       <p className="mt-1 text-sm text-ink-mut">
-        Find the fix fast — grounded in approved procedures, what actually worked before, and the
-        signals to check. Every line is sourced and approval-checked. Not a chatbot.
+        Find the fix fast — the procedure is approval-filtered; past outcomes and captured lessons are
+        shown as advisory history, labelled by status. Not a chatbot.
       </p>
 
       {/* search */}
@@ -130,7 +130,7 @@ function Result({ data }: { data: TroubleshootResult }) {
                   <Chip>{p.document_id}</Chip>
                   {p.section && <span className="text-ink-mut">§ {p.section}</span>}
                   {p.revision && <Chip>rev {p.revision}</Chip>}
-                  <Badge tone="verified">{(p.approval_status || "").toLowerCase()}</Badge>
+                  <Badge tone={(p.approval_status || "").toUpperCase() === "APPROVED" ? "verified" : "warning"}>{(p.approval_status || "unknown").toLowerCase()}</Badge>
                 </div>
                 {p.excerpt && <p className="mt-1.5 text-ink">“{p.excerpt}”</p>}
               </div>

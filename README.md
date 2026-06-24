@@ -149,6 +149,8 @@ docker compose run --rm backend python -m app.cli seed
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System design (C4), boundaries, data flow |
 | [`docs/adr/`](docs/adr/README.md) | Architecture Decision Records — the *why*, enforced by fitness functions |
 | [`docs/PRODUCT_SCOPE.md`](docs/PRODUCT_SCOPE.md) | What this is / is not |
+| [`docs/EFFICAST_FIT.md`](docs/EFFICAST_FIT.md) | **Complementary positioning** — MAIA *closes* the work order; we *verify it recovered* — with a confidence-tagged "what we do / don't assert" box |
+| [`docs/EFFICAST_INTEGRATION_SPEC.md`](docs/EFFICAST_INTEGRATION_SPEC.md) | **Hand-over integration spec** — the read-only data contract we consume + the verdict we publish back (auth/transport "to be agreed"; no machine control) |
 | [`docs/RECOVERY_CONTRACT.md`](docs/RECOVERY_CONTRACT.md) | The core primitive |
 | [`docs/RECOVERY_FORECASTING.md`](docs/RECOVERY_FORECASTING.md) | **New primitive** — surfaces a degradation precursor that diverges *before* the fault recurs, as an early warning (advisory; a transform of one measured channel, not a learned probability) |
 | [`docs/STATE_MACHINE.md`](docs/STATE_MACHINE.md) | States, transitions, guards |

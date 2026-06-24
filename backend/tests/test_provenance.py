@@ -10,7 +10,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
-from app.domain.enums import EvidenceKind, Role, WorkflowState
+from app.domain.enums import EvidenceKind, EvidenceStatus, Role, WorkflowState
 from app.domain.models import AuditEvent, EvidenceItem, EvidenceRequirement, Incident
 from app.seed.northstar import IDS
 from app.services.evidence_quality import classify, summarize
@@ -37,8 +37,12 @@ def test_evidence_quality_ranks_by_provenance_then_discounts():
     assert doc["tier"] == "document_reference" and doc["trust"] == 0.5
     assert sensor["rank"] > human_num["rank"] > human_obs["rank"] > doc["rank"]
 
-    # Validity / conflict collapse trust to zero; staleness halves it.
-    assert classify(_item(source_kind="sensor", value_num=3.1, valid=False))["trust"] == 0.0
+    # Pending (submitted, awaiting validation) is DISCOUNTED, not zeroed — a healthy in-progress incident
+    # must not read as untrustworthy. Rejected/conflicting collapse to zero.
+    pending = classify(_item(source_kind="sensor", value_num=3.1, valid=False))  # default status SUBMITTED
+    assert pending["trust"] == 0.5 and "pending" in pending["flags"]
+    rejected = classify(_item(source_kind="sensor", value_num=3.1, valid=False, status=EvidenceStatus.REJECTED))
+    assert rejected["trust"] == 0.0
     conflict = classify(_item(source_kind="sensor", value_num=3.1, conflict_reason="contradicts QC"))
     assert conflict["trust"] == 0.0 and "conflict" in conflict["flags"]
 

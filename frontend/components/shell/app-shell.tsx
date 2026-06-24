@@ -19,7 +19,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 function ShellInner({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-canvas">
+    <div className="app-canvas flex h-screen overflow-hidden">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-surface-3 focus:px-3 focus:py-2 focus:text-sm">
         Skip to content
       </a>

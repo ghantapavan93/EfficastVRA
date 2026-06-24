@@ -58,7 +58,7 @@ async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
   // Guard an empty/non-JSON 200 body — calling res.json() on it throws past TanStack's isError handling
   // and white-screens the view. Return undefined for an empty body; surface a clear error otherwise.
   const text = await res.text();
-  if (!text) return undefined as T;
+  if (!text.trim()) return undefined as T;
   try {
     return JSON.parse(text) as T;
   } catch {

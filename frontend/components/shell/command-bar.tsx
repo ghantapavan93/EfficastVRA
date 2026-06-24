@@ -7,6 +7,7 @@ import { ROLE_LABEL, USERS, useRole } from "@/lib/role";
 import type { Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Badge, IconButton, Tooltip } from "@/components/forge/primitives";
+import { ConnectionStatus } from "./connection-status";
 import { SyntheticBadge } from "./synthetic-badge";
 import { useShell } from "./shell-context";
 
@@ -19,7 +20,7 @@ export function CommandBar() {
   const activeCount = data?.missions.filter((m) => m.is_active).length ?? 0;
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-raised/80 px-4 backdrop-blur">
+    <header className="glass flex h-14 shrink-0 items-center gap-3 border-b border-line px-4">
       <div className="flex items-center gap-2 text-sm">
         <span className="font-semibold text-ink-hi">Northstar Packaging Plant</span>
         <span className="text-ink-faint">·</span>
@@ -28,7 +29,7 @@ export function CommandBar() {
 
       <div className="ml-2 hidden items-center gap-2 md:flex">
         <Badge tone="agent" dot>{activeCount} active mission{activeCount === 1 ? "" : "s"}</Badge>
-        <Badge tone="verified" dot>Agent online</Badge>
+        <ConnectionStatus />
       </div>
 
       <button

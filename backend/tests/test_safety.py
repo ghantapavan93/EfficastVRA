@@ -68,6 +68,19 @@ def test_unexpected_tool_error_marks_proposal_failed(session: Session, monkeypat
     assert props and all(p.status == "failed" for p in props)  # resolved, not stuck "proposed"
 
 
+# ── N1: an approval decision must be explicit (never silently coerced to REJECT) ──────────────
+def test_approval_decision_must_be_explicit():
+    import pydantic
+
+    from app.tools.schemas import RecordApprovalInput
+
+    RecordApprovalInput(requirement_id="r", decision="approve")  # valid
+    RecordApprovalInput(requirement_id="r", decision="reject")   # valid
+    for bad in ("approved", "Approve", "yes", "ok", ""):
+        with pytest.raises(pydantic.ValidationError):
+            RecordApprovalInput(requirement_id="r", decision=bad)  # loud, not a silent rejection
+
+
 # ── Test 4 + 11: role authorization on approvals ──────────────────────────────
 def test_unauthorized_role_cannot_approve(session: Session):
     svc, inc, c1 = to_monitoring(session)

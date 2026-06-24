@@ -63,6 +63,18 @@ class OEEContext(BaseModel):
     source: str = "SyntheticEfficastPort"
 
 
+class ConsumptionDTO(BaseModel):
+    """Resource consumption for a machine over an aggregation window — Efficast publicly markets
+    consumption tracking (energy/water/material). Read context only; never a control surface."""
+    machine_id: str
+    window: str = "1h"
+    energy_kwh: Optional[float] = None
+    water_l: Optional[float] = None
+    material_kg: Optional[float] = None
+    timestamp: Optional[datetime] = None
+    source: str = "SyntheticEfficastPort"
+
+
 class QualityStatusDTO(BaseModel):
     order_id: Optional[str] = None
     machine_id: Optional[str] = None
@@ -160,6 +172,11 @@ class EfficastPort(abc.ABC):
 
     @abc.abstractmethod
     def get_oee_context(self, machine_id: str) -> OEEContext: ...
+
+    @abc.abstractmethod
+    def get_consumption_snapshot(self, machine_id: str) -> ConsumptionDTO:
+        """Resource consumption (energy/water/material). Read context only — never a control surface."""
+        ...
 
     @abc.abstractmethod
     def get_quality_status(self, *, machine_id: str, order_id: Optional[str] = None) -> QualityStatusDTO: ...

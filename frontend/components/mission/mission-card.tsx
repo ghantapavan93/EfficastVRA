@@ -37,7 +37,7 @@ export function MissionCard({ m, prominent = false }: { m: MissionSummary; promi
           <span>progress</span>
           <span className="mono">{m.recovery_progress}%</span>
         </div>
-        <ProgressBar value={m.recovery_progress} tone={m.recovery_progress >= 100 ? "verified" : "agent"} />
+        <ProgressBar value={m.recovery_progress} tone={m.state === "VERIFIED_RECOVERY" ? "verified" : "agent"} />
       </div>
       <ArrowRight className="h-4 w-4 shrink-0 text-ink-faint transition-transform group-hover:translate-x-0.5 group-hover:text-ink" />
     </Link>
@@ -53,8 +53,10 @@ function ProminentCard({ m }: { m: MissionSummary }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
-        "relative overflow-hidden rounded-xl border bg-surface-1 p-5 shadow-e2",
-        reopened ? "border-failure/30" : "border-agent/30",
+        "relative overflow-hidden rounded-xl border bg-surface-1 p-5",
+        reopened
+          ? "border-failure/30 shadow-[0_20px_55px_-26px_rgba(255,93,93,.55)]"
+          : "border-agent/30 shadow-[0_20px_55px_-26px_rgba(76,125,255,.6)]",
       )}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-agent to-transparent opacity-60" />
@@ -83,7 +85,7 @@ function ProminentCard({ m }: { m: MissionSummary }) {
         <div className="rounded-lg border border-line bg-raised px-3 py-2">
           <div className="label">Recovery progress</div>
           <div className="mono mt-1 text-lg text-ink-hi">{m.recovery_progress}%</div>
-          <div className="mt-1.5"><ProgressBar value={m.recovery_progress} tone={m.recovery_progress >= 100 ? "verified" : reopened ? "failure" : "agent"} /></div>
+          <div className="mt-1.5"><ProgressBar value={m.recovery_progress} tone={m.state === "VERIFIED_RECOVERY" ? "verified" : reopened ? "failure" : "agent"} /></div>
         </div>
       </div>
 

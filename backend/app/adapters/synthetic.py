@@ -14,6 +14,7 @@ from typing import Optional
 from sqlmodel import Session, select
 
 from app.adapters.efficast_port import (
+    ConsumptionDTO,
     EfficastPort,
     InventoryStatusDTO,
     LotDTO,
@@ -201,6 +202,20 @@ class SyntheticEfficastPort(EfficastPort):
             performance=round(performance, 4),
             quality=round(quality, 4),
             oee=oee,
+            timestamp=snap.timestamp,
+        )
+
+    def get_consumption_snapshot(self, machine_id: str) -> ConsumptionDTO:
+        # Illustrative synthetic consumption derived from the live snapshot — a faulting machine wastes
+        # more (re-runs, idling, scrap). Real values would come from Efficast's metering. PROTOTYPE_ASSUMPTION.
+        snap = self.get_machine_snapshot(machine_id)
+        faulting = bool(snap.fault_code)
+        scrap = (snap.scrap_pct or 0.0) / 100.0
+        return ConsumptionDTO(
+            machine_id=machine_id, window="1h",
+            energy_kwh=round(42.0 * (1.18 if faulting else 1.0), 1),
+            water_l=round(120.0 * (1.10 if faulting else 1.0), 1),
+            material_kg=round(95.0 * (1.0 + scrap), 1),
             timestamp=snap.timestamp,
         )
 

@@ -33,8 +33,8 @@ export function NavRail() {
   ];
 
   return (
-    <nav aria-label="Primary" className="flex w-14 shrink-0 flex-col items-center gap-1 border-r border-line bg-raised py-3">
-      <Link href="/" aria-label="Verified Recovery Agent home" className="mb-3 grid h-9 w-9 place-items-center rounded-[10px] bg-brand-soft text-brand">
+    <nav aria-label="Primary" className="glass flex w-14 shrink-0 flex-col items-center gap-1 border-r border-line py-3">
+      <Link href="/" aria-label="Verified Recovery Agent home" className="sheen mb-3 grid h-9 w-9 place-items-center rounded-[10px] bg-brand-soft text-brand ring-1 ring-brand/30 shadow-[0_0_24px_-8px_var(--brand)]">
         <FlaskConical className="h-4 w-4" />
       </Link>
       {items.map((it) => {
@@ -46,8 +46,10 @@ export function NavRail() {
               aria-label={it.label}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "relative grid h-10 w-10 place-items-center rounded-[10px] transition-colors duration-150",
-                isActive ? "bg-surface-2 text-agent" : "text-ink-mut hover:text-ink hover:bg-surface-2",
+                "relative grid h-10 w-10 place-items-center rounded-[10px] transition-all duration-150",
+                isActive
+                  ? "bg-agent-soft text-agent ring-1 ring-agent/30 shadow-[0_0_22px_-8px_var(--agent)]"
+                  : "text-ink-mut hover:text-ink hover:bg-surface-2",
               )}
             >
               {isActive && <span className="absolute -left-3 h-5 w-[3px] rounded-pill bg-agent" aria-hidden />}

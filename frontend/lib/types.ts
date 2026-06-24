@@ -236,8 +236,8 @@ export interface OutcomeView {
   state: string;
   outcome_type: string | null;
   summary: string;
-  before: Record<string, number | string>;
-  after: Record<string, number | string>;
+  before?: Record<string, number | string>;
+  after?: Record<string, number | string>;
   stable_cycles: number;
   required_stable_cycles: number;
   reopened_count: number;

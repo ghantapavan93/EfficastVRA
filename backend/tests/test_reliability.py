@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 from app.db import get_session
 from app.domain.models import OutboxEvent
 from app.main import app
+from app.seed.northstar import IDS
 from app.workflow.audit import MAX_OUTBOX_ATTEMPTS, drain_outbox, outbox_stats, publish_outbox
 
 
@@ -72,6 +73,15 @@ def test_health_reports_db_and_outbox(client):
     assert body["status"] == "ok"
     assert body["db"] is True
     assert "outbox" in body and isinstance(body["outbox"], dict)
+
+
+def test_generic_tool_endpoint_executes_a_read_tool(client):
+    # H-B: POST /api/tools/{name} previously raised NameError (unimported port/reasoning) → 500 on every
+    # call. It must now execute a read tool through the gateway and return its grounded result.
+    r = client.post("/api/tools/get_machine_recovery_metrics",
+                    json={"args": {"machine_id": IDS["machine"]}})
+    assert r.status_code == 200, r.text
+    assert r.json()["ok"] is True
 
 
 def test_correlation_id_is_propagated_and_generated(client):

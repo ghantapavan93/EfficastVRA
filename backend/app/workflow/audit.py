@@ -12,7 +12,6 @@ import hashlib
 import json
 from typing import Optional
 
-from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.config import get_settings
@@ -23,19 +22,20 @@ from app.domain.models import AuditEvent, OutboxEvent
 _settings = get_settings()
 
 
-def next_seq(session: Session, correlation_id: str) -> int:
-    current = session.exec(
-        select(func.max(AuditEvent.seq)).where(AuditEvent.correlation_id == correlation_id)
-    ).first()
-    return (current or 0) + 1
-
-
 def _entry_hash(prev_hash: str, *, seq: int, type_: str, actor: str, role: str, summary: str,
-                prev_state: Optional[str], new_state: Optional[str], detail: dict) -> str:
-    """Deterministic content hash, chained to the previous entry — tamper-evidence for the audit log."""
+                prev_state: Optional[str], new_state: Optional[str], detail: dict,
+                incident_id: Optional[str] = None, contract_id: Optional[str] = None,
+                plant_id: str = "", model_version: str = "", prompt_version: str = "") -> str:
+    """Deterministic content hash, chained to the previous entry — tamper-evidence for the audit log.
+
+    The hashed payload includes the **attribution** fields (incident, contract, plant, model/prompt
+    version) — so a verdict row cannot be silently re-pointed at a different incident/contract or
+    re-attributed to a different model version without breaking the chain."""
     canon = json.dumps(
         {"prev": prev_hash, "seq": seq, "type": type_, "actor": actor, "role": role,
-         "summary": summary, "prev_state": prev_state, "new_state": new_state, "detail": detail},
+         "summary": summary, "prev_state": prev_state, "new_state": new_state, "detail": detail,
+         "incident_id": incident_id, "contract_id": contract_id, "plant_id": plant_id,
+         "model_version": model_version, "prompt_version": prompt_version},
         sort_keys=True, default=str, separators=(",", ":"),
     )
     return hashlib.sha256(canon.encode()).hexdigest()
@@ -54,6 +54,8 @@ def verify_audit_chain(session: Session, correlation_id: str) -> dict:
             prev, seq=ev.seq, type_=ev.type.value, actor=ev.actor, role=ev.role.value,
             summary=ev.summary, prev_state=ev.prev_state.value if ev.prev_state else None,
             new_state=ev.new_state.value if ev.new_state else None, detail=ev.detail or {},
+            incident_id=ev.incident_id, contract_id=ev.contract_id, plant_id=ev.plant_id,
+            model_version=ev.model_version, prompt_version=ev.prompt_version,
         )
         if ev.prev_hash != prev or ev.entry_hash != expected:
             return {"ok": False, "broken_at_seq": ev.seq, "count": len(events)}
@@ -84,14 +86,17 @@ def record_audit(
     ).first()
     seq = (last.seq if last else 0) + 1
     prev_hash = last.entry_hash if last else ""
+    resolved_plant = plant_id or _settings.plant_id
     entry_hash = _entry_hash(
         prev_hash, seq=seq, type_=type.value, actor=actor, role=role.value, summary=summary,
         prev_state=prev_state.value if prev_state else None,
         new_state=new_state.value if new_state else None, detail=detail or {},
+        incident_id=incident_id, contract_id=contract_id, plant_id=resolved_plant,
+        model_version=model_version, prompt_version=prompt_version,
     )
     ev = AuditEvent(
         tenant_id=_settings.tenant_id,
-        plant_id=plant_id or _settings.plant_id,
+        plant_id=resolved_plant,
         correlation_id=correlation_id,
         incident_id=incident_id,
         contract_id=contract_id,

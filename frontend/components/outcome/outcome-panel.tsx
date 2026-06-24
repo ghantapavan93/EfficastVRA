@@ -48,14 +48,14 @@ export function OutcomePanel({ incidentId }: { incidentId: string }) {
           {ROWS.map((r) => (
             <div key={r.key} className="grid grid-cols-3 items-center border-t border-line px-3 py-2 text-sm">
               <span className="text-ink-mut">{r.label}</span>
-              <span className="mono text-right text-failure">{String(data.before[r.key])} {r.unit}</span>
-              <span className="mono text-right text-verified">{String(data.after[r.key])} {r.unit}</span>
+              <span className="mono text-right text-failure">{String(data.before?.[r.key] ?? "—")} {r.unit}</span>
+              <span className="mono text-right text-verified">{String(data.after?.[r.key] ?? "—")} {r.unit}</span>
             </div>
           ))}
           <div className="grid grid-cols-3 items-center border-t border-line px-3 py-2 text-sm">
-            <span className="text-ink-mut">Fault F27</span>
-            <span className="text-right text-failure">{String(data.before.fault)}</span>
-            <span className="text-right text-verified">{String(data.after.fault)}</span>
+            <span className="text-ink-mut">Originating fault</span>
+            <span className="text-right text-failure">{String(data.before?.fault ?? "—")}</span>
+            <span className="text-right text-verified">{String(data.after?.fault ?? "—")}</span>
           </div>
         </div>
       </section>

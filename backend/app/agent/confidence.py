@@ -1,9 +1,10 @@
-"""Calibrated recovery confidence.
+"""Recovery confidence — a deliberately cautious *heuristic* display aid (NOT a calibrated probability).
 
-A deliberately *cautious* estimator: it never reads as "victory" while the verification window is
-still open, because the entire product thesis — and the τ-bench / "illusions of reflection" findings
-(docs/AGENT_RESEARCH.md) — is that early post-intervention signals are not proof. Confidence is a
-display aid only; closure is decided by the deterministic evaluator, never by this number.
+It is a hand-tuned function of the deterministic verdict + stable-streak progress that never reads as
+"victory" while the verification window is still open, because the entire product thesis — and the
+τ-bench / "illusions of reflection" findings (docs/AGENT_RESEARCH.md) — is that early post-intervention
+signals are not proof. It is a display aid only and is uncalibrated; closure is decided by the
+deterministic evaluator, never by this number. (See docs/SYSTEM_OVERVIEW.md on the analytics honesty.)
 """
 
 from __future__ import annotations

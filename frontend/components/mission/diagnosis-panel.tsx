@@ -43,7 +43,9 @@ export function DiagnosisPanel({ incidentId }: { incidentId: string }) {
           {data.origin_alert_id && <Chip>origin {data.origin_alert_id}</Chip>}
           {data.degradation_kind && <Chip>{data.degradation_kind.replace(/_/g, " ")}</Chip>}
           {typeof data.diagnostic_confidence === "number" && (
-            <Badge tone="agent">diagnostic confidence {Math.round(data.diagnostic_confidence * 100)}%</Badge>
+            <span title="Heuristic indicator, not a calibrated probability.">
+              <Badge tone="agent">diagnostic confidence {Math.round(data.diagnostic_confidence * 100)}% · heuristic</Badge>
+            </span>
           )}
         </div>
       </header>

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ToolOutput(BaseModel):
@@ -65,6 +65,15 @@ class RecordApprovalInput(BaseModel):
     requirement_id: str
     decision: str = "approve"  # approve | reject
     reason: str = ""
+
+    @field_validator("decision")
+    @classmethod
+    def _decision_is_explicit(cls, v: str) -> str:
+        # Anything other than the two valid values used to be silently coerced to REJECT, burning the
+        # one-shot human decision. Reject the ambiguous input loudly instead (gateway → 422).
+        if v not in ("approve", "reject"):
+            raise ValueError("decision must be exactly 'approve' or 'reject'")
+        return v
 
 
 class PublishDecisionInput(BaseModel):

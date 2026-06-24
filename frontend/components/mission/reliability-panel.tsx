@@ -90,7 +90,8 @@ export function ReliabilityPanel({ incidentId }: { incidentId: string }) {
             <div className="relative h-2 w-full overflow-hidden rounded-pill bg-surface-2">
               {(() => {
                 const lo = data.sprt.accept_bound, hi = data.sprt.reject_bound;
-                const x = Math.max(0, Math.min(100, ((data.sprt.llr - lo) / (hi - lo)) * 100));
+                const span = hi - lo;
+                const x = span > 0 ? Math.max(0, Math.min(100, ((data.sprt.llr - lo) / span) * 100)) : 50;
                 return <div className="absolute top-1/2 h-3 w-1 -translate-y-1/2 rounded-pill bg-agent" style={{ left: `${x}%` }} aria-hidden />;
               })()}
             </div>

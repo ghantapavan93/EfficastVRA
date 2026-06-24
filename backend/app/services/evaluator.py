@@ -58,6 +58,11 @@ def _deadline_cycles(cond: RecoveryCondition, contract: RecoveryContract) -> Opt
 def is_stable_observation(obs: RecoveryObservation, conditions: list[RecoveryCondition]) -> bool:
     """A cycle is 'stable' iff it satisfies every continuous machine/production condition and has no
     fault recurrence. Used to count consecutive stable cycles."""
+    # ANY active fault makes a cycle non-stable — "30 stable cycles" must mean genuinely fault-free, not
+    # merely free of the one originating fault. A new/secondary fault during the window (a real risk on
+    # physical equipment) must reset the streak, even if the contract's NOT_RECUR names a different code.
+    if obs.fault_code:
+        return False
     for c in conditions:
         if c.kind == ConditionKind.QUALITY:
             continue

@@ -17,7 +17,7 @@ const STAGES = [
 export default function Landing() {
   const reduce = useReducedMotion();
   return (
-    <div className="grid-motif relative min-h-screen overflow-hidden bg-canvas">
+    <div className="app-canvas grid-motif relative min-h-screen overflow-hidden">
       {/* subtle top illumination */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-[radial-gradient(60%_120%_at_50%_-20%,var(--brand-soft),transparent)]" />
       <header className="relative flex items-center justify-between px-6 py-5">

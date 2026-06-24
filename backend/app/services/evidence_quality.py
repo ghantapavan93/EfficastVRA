@@ -31,7 +31,7 @@ TIER_META: dict[str, dict] = {
 
 def _tier(item: EvidenceItem) -> str:
     """Map an evidence item to a provenance tier from its source and whether it carries a measurement."""
-    source_kind = (item.source_kind or "").lower()
+    source_kind = (item.source_kind or "").strip().lower()
     has_measurement = item.value_num is not None
     if source_kind == "sensor":
         return "direct_sensor" if has_measurement else "system_inferred"
@@ -51,17 +51,20 @@ def classify(item: EvidenceItem, requirement: Optional[EvidenceRequirement] = No
     meta = TIER_META[tier]
     trust = float(meta["weight"])
     flags: list[str] = []
+    status = item.status.value if item.status else None
 
-    # A contested or not-yet-validated item is not trustworthy evidence — trust collapses to zero.
-    if item.conflict_reason:
-        flags.append("conflict")
+    # Terminal-invalid (contested / rejected / expired) is NOT evidence — trust collapses to zero. But a
+    # merely-SUBMITTED item awaiting validation is legitimately *pending*, not contested — discount it,
+    # don't zero it (else a healthy in-progress incident reads as untrustworthy).
+    if item.conflict_reason or status in ("REJECTED", "CONFLICTING", "EXPIRED"):
+        flags.append("conflict" if item.conflict_reason else (status or "invalid").lower())
         trust = 0.0
-    if not item.valid:
-        flags.append("unvalidated")
-        trust = 0.0
-    # Staleness discounts (but still records) the evidence.
+    elif not item.valid:
+        flags.append("pending")
+        trust = round(trust * 0.5, 2)
+    # Staleness discounts (but still records) the evidence, on top of the above.
     freshness_max = requirement.freshness_max_s if requirement else None
-    if freshness_max and item.freshness_s is not None and item.freshness_s > freshness_max:
+    if trust > 0 and freshness_max and item.freshness_s is not None and item.freshness_s > freshness_max:
         flags.append("stale")
         trust = round(trust * 0.5, 2)
 

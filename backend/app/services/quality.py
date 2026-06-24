@@ -11,7 +11,7 @@ from sqlmodel import Session, select
 from app.adapters.efficast_port import EfficastPort
 from app.domain.enums import ApprovalStatus
 from app.domain.models import ApprovalDecision, ApprovalRequirement, RecoveryCondition
-from app.domain.enums import ConditionStatus, Role
+from app.domain.enums import ConditionKind, ConditionStatus, Role
 
 
 def quality_status(port: EfficastPort, *, machine_id: str, order_id: str | None) -> dict:
@@ -47,11 +47,16 @@ def quality_release_satisfied(session: Session, contract_id: str) -> tuple[bool,
     if decision is None or decision.decided_role != Role.QUALITY_ENGINEER:
         return False, "quality release approval must be made by a quality engineer"
 
-    fp = session.exec(
+    # Fail CLOSED: a quality release must verify against an actual quality condition, and that condition
+    # must be fully PASSED (not merely PASSING mid-window). Generalised off the machine-specific
+    # "first_piece" key to any QUALITY-kind condition, so a contract can't quietly release with no check.
+    quality_conds = session.exec(
         select(RecoveryCondition)
         .where(RecoveryCondition.contract_id == contract_id)
-        .where(RecoveryCondition.key == "first_piece")
-    ).first()
-    if fp is not None and fp.status not in (ConditionStatus.PASSED, ConditionStatus.PASSING):
-        return False, "first-piece quality condition not passed"
+        .where(RecoveryCondition.kind == ConditionKind.QUALITY)
+    ).all()
+    if not quality_conds:
+        return False, "contract has no quality condition to release against"
+    if not all(c.status == ConditionStatus.PASSED for c in quality_conds):
+        return False, "quality condition(s) not fully passed"
     return True, "quality release satisfied"

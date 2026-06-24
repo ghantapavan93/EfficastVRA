@@ -9,6 +9,7 @@ as everywhere in this system — there is deliberately **no** machine-control me
 Mapping (illustrative, to be confirmed against a real, authorized API — currently UNKNOWN):
   • telemetry / Live View        → MQTT topic or REST `/machines/{id}/live`  → MachineSnapshot
   • OEE                          → REST `/oee/{machine}`                      → OEEContext
+  • consumption (energy/water)   → REST `/consumption/{machine}`             → ConsumptionDTO
   • production orders            → REST `/orders?machine={id}&status=active`  → ProductionOrderDTO
   • quality / scrap / lots       → REST `/quality`, `/lots?order={id}`        → QualityStatusDTO / LotDTO
   • MAIA / agent alerts          → webhook or MQTT `agents/alerts`            → MaiaAlertDTO
@@ -23,6 +24,7 @@ from __future__ import annotations
 from typing import Optional, Protocol
 
 from app.adapters.efficast_port import (
+    ConsumptionDTO,
     EfficastPort,
     InventoryStatusDTO,
     LotDTO,
@@ -87,6 +89,9 @@ class EfficastApiPort(EfficastPort):
 
     def get_oee_context(self, machine_id: str) -> OEEContext:
         raise NotConfigured("map REST /oee/{machine} → OEEContext")
+
+    def get_consumption_snapshot(self, machine_id: str) -> ConsumptionDTO:
+        raise NotConfigured("map REST /consumption/{machine} (energy/water/material) → ConsumptionDTO")
 
     def get_quality_status(self, *, machine_id: str, order_id: Optional[str] = None) -> QualityStatusDTO:
         raise NotConfigured("map REST /quality → QualityStatusDTO")
