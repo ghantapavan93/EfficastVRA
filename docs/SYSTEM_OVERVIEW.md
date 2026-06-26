@@ -210,6 +210,19 @@ matter if someone took this to production." Each item has `file:line` evidence.
 > contrast, the progress bar's verified tone gated on real closure, and machine‑agnostic outcome/a11y
 > labels. Still deferred: **M‑C**, **C2**, the inventory‑reservation‑outside‑gateway (exploit closed), and
 > the infra batch.
+>
+> **Update 6 (Phase 34 — the two deferred MEDIUMs closed).** **C2** is fixed: the evaluator computes its
+> verdict `as_of` a moment (default *now*) and re‑checks evidence freshness at *use* time, so evidence that
+> was fresh at submission but has since aged past its `freshness_max_s` budget no longer satisfies its
+> condition at closure (`services/evidence.py:is_fresh_at`, `services/evaluator.py`; the monitoring/reasoning
+> paths that pass no `as_of` are unchanged). **M‑C** is fixed: the knowledge candidate's text is now
+> *derived from the incident* — fault, machine model, failed‑vs‑held interventions, the replaced component
+> (+ part number), the relapse cycle read from the first faulted observation, and the verified window — via
+> `tools/registry.py:derive_knowledge_candidate`, replacing the hardcoded F27/CDX‑220/BR‑6205 string (the
+> relapse cycle is now the real `17`, not a rounded "~20"). Tests: `test_freshness_at_closure.py` (3) +
+> `test_knowledge.py` (2, incl. a mutation proof the lesson tracks a different machine/part). Backend
+> **107** / frontend **24** green; hero demo still reaches VERIFIED_RECOVERY. Now deferred: only the
+> inventory‑reservation‑outside‑gateway (exploit closed) and the infra batch (needs Postgres/broker).
 
 ### HIGH — correctness or claim-integrity
 - **H1 — Gateway doesn't roll back its own flushed rows on an unexpected exception.** `gateway/gateway.py` flushes `ActionProposal` + audit rows, then re-raises without rollback; "clean rollback" is left to the caller and is never exercised by a test. `RecoveryService.advance()` calls the gateway mid-loop after already transitioning state. *Fix: own a savepoint and roll back to it before re-raising.*

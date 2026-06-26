@@ -22,6 +22,14 @@ from app.services.evaluator import EvaluationResult, evaluate, is_stable_observa
 from app.services.telemetry import resolve_source
 from app.services.windows import get_active_window
 
+# Sample keys promoted to first-class observation columns; anything else (a machine-class signal such
+# as melt_temperature / injection_pressure / oil_temperature) is carried in obs.raw, where the
+# evaluator's signal_value() resolves it. This is what lets a press/pump stream verify through the
+# same engine as the conveyor.
+_STANDARD_SAMPLE_KEYS = {
+    "vibration", "temperature", "cycle_time", "scrap_pct", "fault_code", "bearing_precursor",
+}
+
 
 def advance_cycle(
     session: Session,
@@ -40,6 +48,11 @@ def advance_cycle(
         machine_id=machine_id, window_seq=window.sequence, cycle_index=next_index,
         baseline=window.baseline or {},
     )
+    # Honest provenance: stamp the *actual* source + freshness of this sample (ingested data is no
+    # longer mislabelled "SyntheticEfficastPort" with a fictional 2 s age).
+    src_label, src_freshness = source.provenance()
+    # Machine-class signals beyond the standard columns travel in obs.raw for the evaluator to read.
+    extra_signals = {k: v for k, v in sample.items() if k not in _STANDARD_SAMPLE_KEYS}
 
     obs = RecoveryObservation(
         tenant_id=contract.tenant_id,
@@ -54,8 +67,9 @@ def advance_cycle(
         scrap_pct=sample.get("scrap_pct"),
         fault_code=sample.get("fault_code"),
         bearing_precursor=sample.get("bearing_precursor"),
-        source="SyntheticEfficastPort",
-        freshness_s=2,
+        source=src_label,
+        freshness_s=src_freshness,
+        raw=extra_signals,
     )
     session.add(obs)
 
@@ -69,7 +83,7 @@ def advance_cycle(
             "scrap_pct": sample.get("scrap_pct"),
             "fault_code": sample.get("fault_code"),
             "at": obs.at.isoformat(),
-            "freshness_s": 2,
+            "freshness_s": src_freshness,
         }
         session.add(machine)
 

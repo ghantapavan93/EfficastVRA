@@ -9,11 +9,18 @@ evaluator verifies recovery on real data. Nothing else in the system changes.
 from __future__ import annotations
 
 import abc
+from typing import Optional
 
 from sqlmodel import Session, select
 
 from app.adapters.synthetic import ScenarioPhysics
+from app.domain.base import utcnow
 from app.domain.models import TelemetrySample
+
+# Synthetic samples are generated in-process, so they're effectively "just now" — a small, honest
+# constant rather than a claim of real-sensor freshness.
+_SYNTHETIC_FRESHNESS_S = 2
+_SYNTHETIC_LABEL = "SyntheticEfficastPort"
 
 
 class TelemetrySource(abc.ABC):
@@ -21,6 +28,15 @@ class TelemetrySource(abc.ABC):
     def next_sample(self, *, machine_id: str, window_seq: int, cycle_index: int, baseline: dict) -> dict:
         """Return one cycle's reading: vibration/temperature/cycle_time/scrap_pct/fault_code (+extras)."""
         ...
+
+    def provenance(self) -> tuple[str, int]:
+        """``(source label, freshness seconds)`` for the most recently served sample.
+
+        Honest provenance: synthetic data is labelled as such; ingested data carries its *real* source
+        and *real* age. The cycle engine stamps these onto the observation instead of the old hardcoded
+        ``("SyntheticEfficastPort", 2)`` — which lied on ingested data (the product's own
+        "can we trust the evidence?" thesis applied to its data layer)."""
+        return (_SYNTHETIC_LABEL, _SYNTHETIC_FRESHNESS_S)
 
 
 class SyntheticTelemetrySource(TelemetrySource):
@@ -38,6 +54,7 @@ class IngestedTelemetrySource(TelemetrySource):
 
     def __init__(self, session: Session):
         self.session = session
+        self._last: Optional[TelemetrySample] = None
 
     def has_data(self, machine_id: str) -> bool:
         return self.session.exec(
@@ -56,10 +73,19 @@ class IngestedTelemetrySource(TelemetrySource):
         row.consumed = True
         self.session.add(row)
         self.session.flush()
+        self._last = row
         return {
             "vibration": row.vibration, "temperature": row.temperature, "cycle_time": row.cycle_time,
             "scrap_pct": row.scrap_pct, "fault_code": row.fault_code, **(row.extra or {}),
         }
+
+    def provenance(self) -> tuple[str, int]:
+        if self._last is None:
+            return ("ingested", 0)
+        label = self._last.source or "ingested"
+        if self._last.received_at is None:
+            return (label, 0)
+        return (label, max(int((utcnow() - self._last.received_at).total_seconds()), 0))
 
 
 class NoTelemetryAvailable(RuntimeError):

@@ -6,6 +6,7 @@ a wrong-role submission cannot satisfy a requirement — enforced here, asserted
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Optional
 
 from sqlmodel import Session, select
@@ -76,20 +77,51 @@ def validate_item(item: EvidenceItem, requirement: EvidenceRequirement) -> Evide
     return item
 
 
-def latest_valid_item(session: Session, requirement_id: str) -> Optional[EvidenceItem]:
+def is_fresh_at(item: EvidenceItem, requirement: EvidenceRequirement, as_of: datetime) -> bool:
+    """Re-check an item's freshness at *use* time, not only at submission.
+
+    Closes a time-of-check/time-of-use gap (C2): evidence validated as fresh when received can age
+    past its freshness budget before it is used to *close* a contract. The same budget
+    (``freshness_max_s``) is re-evaluated against ``as_of`` (closure time), so stale-at-closure
+    evidence no longer satisfies a requirement even though it passed the submission-time gate. A
+    requirement with no freshness budget is always fresh.
+    """
+    if requirement.freshness_max_s is None:
+        return True
+    ts = item.evidence_timestamp or item.received_at
+    if ts is None:
+        return True
+    age_s = max((as_of - ts).total_seconds(), 0.0)
+    return age_s <= requirement.freshness_max_s
+
+
+def latest_valid_item(
+    session: Session,
+    requirement_id: str,
+    *,
+    requirement: Optional[EvidenceRequirement] = None,
+    as_of: Optional[datetime] = None,
+) -> Optional[EvidenceItem]:
     items = session.exec(
         select(EvidenceItem)
         .where(EvidenceItem.requirement_id == requirement_id)
         .order_by(EvidenceItem.received_at.desc())  # type: ignore[attr-defined]
     ).all()
     for it in items:
-        if it.valid and it.status == EvidenceStatus.VALIDATED:
-            return it
+        if not (it.valid and it.status == EvidenceStatus.VALIDATED):
+            continue
+        # C2: when evaluating *for use* (closure), re-check freshness as of that moment — a once-fresh
+        # item that has since aged past its budget must not silently satisfy the requirement.
+        if as_of is not None and requirement is not None and not is_fresh_at(it, requirement, as_of):
+            continue
+        return it
     return None
 
 
-def requirement_satisfied(session: Session, requirement: EvidenceRequirement) -> bool:
-    return latest_valid_item(session, requirement.id) is not None
+def requirement_satisfied(
+    session: Session, requirement: EvidenceRequirement, *, as_of: Optional[datetime] = None
+) -> bool:
+    return latest_valid_item(session, requirement.id, requirement=requirement, as_of=as_of) is not None
 
 
 def missing_required(session: Session, contract_id: str, phase: str) -> list[EvidenceRequirement]:

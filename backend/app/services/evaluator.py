@@ -8,6 +8,7 @@ involved.** The model may explain a verdict; only this code produces one.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Optional
 
 from sqlmodel import Session, select
@@ -55,28 +56,53 @@ def _deadline_cycles(cond: RecoveryCondition, contract: RecoveryContract) -> Opt
     return None
 
 
+# Condition keys that map to a first-class observation column. Any other key — a machine-class signal
+# like ``melt_temperature`` / ``injection_pressure`` / ``oil_temperature`` — is read from ``obs.raw``.
+# This is what makes the evaluator genuinely machine-agnostic: it honours whatever metric keys a
+# profile's contract declares, not just the four conveyor columns.
+_COLUMN_FOR_KEY: dict[str, str] = {
+    "vibration_rms": "vibration",
+    "cycle_time": "cycle_time",
+    "scrap": "scrap_pct",
+    "temperature": "temperature",
+    "temperature_trend": "temperature",
+}
+
+
+def signal_value(obs: RecoveryObservation, key: str) -> Optional[float]:
+    """Resolve a condition key to a numeric reading on an observation — a first-class column when one
+    exists, otherwise the machine-class signal carried in ``obs.raw``. None when the cycle carries no
+    reading for that signal."""
+    col = _COLUMN_FOR_KEY.get(key)
+    if col is not None:
+        return getattr(obs, col, None)
+    v = (obs.raw or {}).get(key)
+    return float(v) if isinstance(v, (int, float)) else None
+
+
 def is_stable_observation(obs: RecoveryObservation, conditions: list[RecoveryCondition]) -> bool:
     """A cycle is 'stable' iff it satisfies every continuous machine/production condition and has no
-    fault recurrence. Used to count consecutive stable cycles."""
+    fault recurrence. Used to count consecutive stable cycles.
+
+    Generic over the contract's conditions (key + op resolved via ``signal_value``), not the four
+    conveyor metrics — so a press or pump contract's signals gate the streak too. Trend/count
+    (DECLINING/COUNT_GTE) and quality conditions are not point-in-time stability checks; skip them."""
     # ANY active fault makes a cycle non-stable — "30 stable cycles" must mean genuinely fault-free, not
     # merely free of the one originating fault. A new/secondary fault during the window (a real risk on
     # physical equipment) must reset the streak, even if the contract's NOT_RECUR names a different code.
     if obs.fault_code:
         return False
     for c in conditions:
-        if c.kind == ConditionKind.QUALITY:
+        if c.kind == ConditionKind.QUALITY or c.op in (
+            CompareOp.COUNT_GTE, CompareOp.DECLINING, CompareOp.NOT_RECUR
+        ):
             continue
-        if c.op == CompareOp.LTE and obs.vibration is not None and c.key == "vibration_rms":
-            if obs.vibration > (c.threshold or 0):
-                return False
-        elif c.op == CompareOp.WITHIN_PCT and c.key == "cycle_time" and obs.cycle_time is not None:
-            base = c.baseline or 0
-            if base and abs(obs.cycle_time - base) / base > (c.threshold or 0):
-                return False
-        elif c.op == CompareOp.LT and c.key == "scrap" and obs.scrap_pct is not None:
-            if obs.scrap_pct >= (c.threshold or 0):
-                return False
-        elif c.op == CompareOp.NOT_RECUR and obs.fault_code and obs.fault_code == c.fault_code:
+        val = signal_value(obs, c.key)
+        if val is None:
+            continue  # no reading for this signal this cycle → can't judge it here
+        if c.op == CompareOp.WITHIN_PCT and not (c.baseline or 0):
+            continue  # can't judge a percent-band without a baseline
+        if not _passes(val, c):
             return False
     return True
 
@@ -89,6 +115,7 @@ def _evaluate_condition(
     window_stable: int,
     window_required: int,
     window_complete: bool,
+    as_of: datetime,
 ) -> tuple[ConditionStatus, Optional[float]]:
     obs = observations
     latest = obs[-1] if obs else None
@@ -107,7 +134,7 @@ def _evaluate_condition(
                 select(EvidenceRequirement).where(EvidenceRequirement.contract_id == contract.id)
             ).all()
             req = next((r for r in reqs if cond.key in (r.blocks_conditions or [])), None)
-        if req is not None and requirement_satisfied(session, req):
+        if req is not None and requirement_satisfied(session, req, as_of=as_of):
             return CS.PASSED, 1.0
         return CS.BLOCKED, None
 
@@ -137,35 +164,16 @@ def _evaluate_condition(
             return CS.PASSED, cur
         return (CS.PASSING if window_stable > 0 else CS.PENDING), cur
 
-    # Scalar comparisons on the latest reading
-    value = None
-    if latest is not None:
-        value = {
-            "vibration_rms": latest.vibration,
-            "cycle_time": latest.cycle_time,
-            "scrap": latest.scrap_pct,
-        }.get(cond.key)
+    # Scalar comparisons on the latest reading (machine-agnostic via signal_value: column or obs.raw).
+    value = signal_value(latest, cond.key) if latest is not None else None
     if value is None:
         return CS.BLOCKED, None
-
-    if cond.op == CompareOp.WITHIN_PCT:
-        base = cond.baseline or 0
-        passing = bool(base) and abs(value - base) / base <= (cond.threshold or 0)
-    elif cond.op == CompareOp.LTE:
-        passing = value <= (cond.threshold or 0)
-    elif cond.op == CompareOp.LT:
-        passing = value < (cond.threshold or 0)
-    elif cond.op == CompareOp.GTE:
-        passing = value >= (cond.threshold or 0)
-    elif cond.op == CompareOp.GT:
-        passing = value > (cond.threshold or 0)
-    else:
-        passing = value == (cond.threshold or 0)
+    passing = _passes(value, cond)
 
     deadline = _deadline_cycles(cond, contract)
     if deadline is not None and observed >= deadline:
         met_in_deadline = any(
-            _scalar_for(o, cond.key) is not None and _passes(_scalar_for(o, cond.key), cond)
+            signal_value(o, cond.key) is not None and _passes(signal_value(o, cond.key), cond)
             for o in obs[:deadline]
         )
         if not met_in_deadline and not passing:
@@ -175,22 +183,32 @@ def _evaluate_condition(
     return CS.PENDING, value
 
 
-def _scalar_for(o: RecoveryObservation, key: str) -> Optional[float]:
-    return {"vibration_rms": o.vibration, "cycle_time": o.cycle_time, "scrap": o.scrap_pct}.get(key)
-
-
 def _passes(value: float, cond: RecoveryCondition) -> bool:
+    """Does a reading satisfy a scalar condition? Covers every scalar op a profile can declare."""
+    t = cond.threshold or 0
     if cond.op == CompareOp.LTE:
-        return value <= (cond.threshold or 0)
+        return value <= t
     if cond.op == CompareOp.LT:
-        return value < (cond.threshold or 0)
+        return value < t
+    if cond.op == CompareOp.GTE:
+        return value >= t
+    if cond.op == CompareOp.GT:
+        return value > t
+    if cond.op == CompareOp.EQ:
+        return value == t
     if cond.op == CompareOp.WITHIN_PCT:
         base = cond.baseline or 0
-        return bool(base) and abs(value - base) / base <= (cond.threshold or 0)
+        return bool(base) and abs(value - base) / base <= t
     return False
 
 
-def evaluate(session: Session, contract: RecoveryContract) -> EvaluationResult:
+def evaluate(
+    session: Session, contract: RecoveryContract, *, as_of: Optional[datetime] = None
+) -> EvaluationResult:
+    # ``as_of`` is the moment the verdict is computed — defaults to *now* so evidence freshness is
+    # re-checked at the time of use (closure), not only at submission. Closure-bearing evidence that
+    # has aged past its freshness budget no longer satisfies its condition (C2).
+    as_of = as_of or utcnow()
     window = get_active_window(session, contract)
     observations = []
     stable = 0
@@ -214,7 +232,7 @@ def evaluate(session: Session, contract: RecoveryContract) -> EvaluationResult:
     cond_views: list[dict] = []
     for cond in conditions:
         status, value = _evaluate_condition(
-            session, cond, contract, observations, stable, required, window_complete
+            session, cond, contract, observations, stable, required, window_complete, as_of
         )
         cond.status = status
         cond.current_value = value

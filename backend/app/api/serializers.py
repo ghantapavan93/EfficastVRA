@@ -325,7 +325,9 @@ def timeline_view(session: Session, incident: Incident) -> dict:
         "kind": "cycle", "cycle_index": o.cycle_index, "window": o.window_id, "at": _iso(o.at),
         "vibration": o.vibration, "temperature": o.temperature, "cycle_time": o.cycle_time,
         "scrap_pct": o.scrap_pct, "fault_code": o.fault_code, "source": o.source,
-        "freshness_s": o.freshness_s, "is_recurrence": o.fault_code == "F27",
+        "freshness_s": o.freshness_s,
+        # A recurrence = an observation carrying the incident's *originating* fault, not a literal "F27".
+        "is_recurrence": bool(o.fault_code) and o.fault_code == incident.fault_code,
     } for o in obs]
     return {"events": events, "cycles": cycles}
 
@@ -345,10 +347,11 @@ def outcome_view(session: Session, incident: Incident) -> dict:
         "summary": incident.outcome_summary,
         "before": {"vibration": DEGRADED["vibration"], "temperature": DEGRADED["temperature"],
                    "cycle_time": DEGRADED["cycle_time"], "scrap_pct": DEGRADED["scrap_pct"],
-                   "fault": "F27 recurring"},
+                   "fault": f"{incident.fault_code or 'fault'} recurring"},
         "after": {"vibration": BASELINE["vibration_mm_s"], "temperature": BASELINE["temp_c"],
                   "cycle_time": BASELINE["cycle_time_s"], "scrap_pct": BASELINE["scrap_pct"],
-                  "fault": "F27 absent for 30 cycles"},
+                  "fault": f"{incident.fault_code or 'fault'} absent for "
+                           f"{result.required_stable_cycles if result else 30} stable cycles"},
         "stable_cycles": result.stable_streak if result else 0,
         "required_stable_cycles": result.required_stable_cycles if result else 30,
         "reopened_count": incident.reopened_count,

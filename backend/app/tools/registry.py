@@ -22,13 +22,16 @@ from app.domain.enums import (
 from app.domain.models import (
     ApprovalDecision,
     ApprovalRequirement,
+    Component,
     EvidenceItem,
     EvidenceRequirement,
     Incident,
     Intervention,
     KnowledgeCandidate,
+    Machine,
     MaterialLot,
     RecoveryContract,
+    RecoveryObservation,
 )
 from app.gateway.actions import (
     ALL_ROLES,
@@ -253,28 +256,96 @@ def _h_reopen_incident(ctx: ToolContext) -> ToolOutput:
                       source="workflow", ref=v2.id)
 
 
+def derive_knowledge_candidate(session, incident: Incident) -> dict:
+    """Derive a knowledge candidate's content from the incident's *own* facts (M-C).
+
+    The lesson is built from the fault, the machine's model, which intervention failed vs. held, the
+    replaced component, the relapse cycle (read from the first faulted observation), and the verified
+    window — so it generalises to any machine/fault rather than being hardcoded to the Northstar
+    F27 / CDX-220 / BR-6205 case. Returns the content-bearing ``KnowledgeCandidate`` fields.
+    """
+    interventions = session.exec(
+        select(Intervention).where(Intervention.incident_id == incident.id)
+        .order_by(Intervention.sequence)  # type: ignore[arg-type]
+    ).all()
+
+    # The contract whose verification passed binds the intervention that *held*; an earlier
+    # (lower-sequence) intervention is the one that did not.
+    contract = (session.get(RecoveryContract, incident.current_contract_id)
+                if incident.current_contract_id else None)
+    success = (session.get(Intervention, contract.intervention_id)
+               if (contract and contract.intervention_id) else None)
+    if success is None and interventions:
+        success = interventions[-1]
+    failed = next((i for i in interventions if success and i.sequence < success.sequence), None)
+
+    machine = session.get(Machine, incident.machine_id)
+    model = (machine.machine_model if machine else "") or ""
+    component = (session.get(Component, success.component_id)
+                 if (success and success.component_id) else None)
+
+    fault = incident.fault_code or "the fault"
+    required_stable = (int((contract.verification_window or {}).get("required_stable_cycles", 30))
+                       if contract else 30)
+
+    # Relapse cycle — read from the first observation that carried a fault, not assumed.
+    observations = session.exec(
+        select(RecoveryObservation).where(RecoveryObservation.incident_id == incident.id)
+        .order_by(RecoveryObservation.cycle_index)  # type: ignore[arg-type]
+    ).all()
+    faulted = next((o for o in observations if o.fault_code), None)
+    recurrence_cycle = faulted.cycle_index if faulted else None
+
+    def _action(itv, default: str) -> str:
+        if itv is None:
+            return default
+        return (itv.kind or "").replace("_", " ").strip() or (itv.title or default)
+
+    failed_action = _action(failed, "the initial intervention")
+    success_action = _action(success, "a follow-up intervention")
+    root_cause = (component.kind if component else "") or "the affected component"
+    remedy_noun = (component.name if component else "") or root_cause
+    part_suffix = f" ({component.part_number})" if (component and component.part_number) else ""
+    where = f"On {model} machines, " if model else ""
+
+    if failed is not None:
+        title = f"{fault} recurrence after {failed_action} → {success_action}"
+        window_phrase = (f"within ~{recurrence_cycle} cycles " if recurrence_cycle is not None else "")
+        lesson = (f"{where}{fault} recurrence {window_phrase}after a {failed_action} indicates "
+                  f"{root_cause} degradation; replace the {remedy_noun}{part_suffix} and verify over "
+                  f"{required_stable} stable cycles.")
+    else:
+        title = f"{fault} recovered by {success_action}"
+        lesson = (f"{where}{fault} was recovered by {success_action}{part_suffix}; verify over "
+                  f"{required_stable} stable cycles before closing the work order.")
+    if not where:  # sentence now starts with the fault code — capitalise it
+        lesson = lesson[:1].upper() + lesson[1:]
+
+    conditions: dict = {"fault": incident.fault_code, "required_stable_cycles": required_stable}
+    if recurrence_cycle is not None:
+        conditions["recurrence_cycle"] = recurrence_cycle
+
+    return {
+        "title": title,
+        "lesson": lesson,
+        "component": (component.kind if component else "") or "",
+        "applicable_models": [model] if model else [],
+        "conditions": conditions,
+        "supporting_evidence": [i.id for i in interventions],
+        "failed_intervention": failed.id if failed else "",
+        "successful_intervention": success.id if success else "",
+    }
+
+
 def _h_create_knowledge(ctx: ToolContext) -> ToolOutput:
     incident = ctx.session.get(Incident, ctx.input.incident_id)
     if incident is None:
         raise ToolError("incident not found", code="not_found")
-    interventions = ctx.session.exec(
-        select(Intervention).where(Intervention.incident_id == incident.id)
-    ).all()
-    failed = next((i for i in interventions if i.sequence == 1), None)
-    success = next((i for i in interventions if i.sequence == 2), None)
     kc = KnowledgeCandidate(
         tenant_id=incident.tenant_id, plant_id=incident.plant_id, incident_id=incident.id,
-        title="F27 recurrence after alignment → bearing replacement",
-        lesson=("On CDX-220 conveyor drives, F27 recurrence within ~20 cycles after a coupling-"
-                "alignment correction indicates drive-end bearing degradation; replace BR-6205 and "
-                "verify over 30 stable cycles."),
-        component="bearing", applicable_models=["CDX-220"],
-        conditions={"fault": "F27", "recurrence_cycle": 17, "required_stable_cycles": 30},
-        supporting_evidence=[i.id for i in interventions],
-        failed_intervention=failed.id if failed else "",
-        successful_intervention=success.id if success else "",
         status=KnowledgeStatus.PENDING_REVIEW, reviewer_role=Role.QUALITY_ENGINEER,
         review_due=utcnow() + timedelta(days=30),
+        **derive_knowledge_candidate(ctx.session, incident),
     )
     ctx.session.add(kc)
     record_audit(ctx.session, type=AuditEventType.KNOWLEDGE_CANDIDATE_CREATED,

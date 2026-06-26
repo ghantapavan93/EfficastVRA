@@ -35,7 +35,13 @@ class HeaderIdentityProvider(IdentityProvider):
     def authenticate(self, *, credential: Optional[str], session: Session) -> Principal:
         from fastapi import HTTPException
 
-        username = credential or "s.vega"
+        from app.config import get_settings
+
+        username = credential
+        if not username:
+            if not get_settings().demo_mode:
+                raise HTTPException(status_code=401, detail="authentication required: set X-VRA-User")
+            username = "s.vega"  # demo-only default principal
         user = session.exec(select(User).where(User.username == username)).first()
         if user is None or not user.active:
             raise HTTPException(status_code=401, detail=f"unknown or inactive user '{username}'")

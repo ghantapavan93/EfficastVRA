@@ -29,9 +29,9 @@ real Efficast company; no partnership, integration, or API access is claimed.
 
 ## How to run / test
 - Backend: `cd backend && ./.venv/Scripts/python.exe -m app.cli reset && uvicorn app.main:app` (:8000).
-  Tests: `./.venv/Scripts/python.exe -m pytest -q` (**101 passing**).
+  Tests: `./.venv/Scripts/python.exe -m pytest -q` (**117 passing**).
 - Frontend: `cd frontend && npm run dev` (:3000, proxies `/api`). Checks: `npm run typecheck`, `npm run lint`,
-  `npm run test` (**22 passing**), `npm run build`.
+  `npm run test` (**24 passing**), `npm run build`.
 - Headless demo: `python -m app.cli demo`. Reset the DB after any model/audit‑hash change.
 
 ## Working agreement
