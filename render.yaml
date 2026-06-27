@@ -1,0 +1,30 @@
+# Render Blueprint — FastAPI backend for the Verified Recovery Agent.
+#
+# The database is EXTERNAL (Neon serverless Postgres) — set VRA_DATABASE_URL to the Neon connection
+# string in the Render dashboard. The frontend is deployed separately on Vercel. Full walkthrough:
+# docs/DEPLOYMENT.md. Everything here fits the free tiers.
+services:
+  - type: web
+    name: efficast-vra-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    region: virginia          # co-locate with Neon's default AWS US East 1 (N. Virginia) → low DB latency
+    # Installs the app + the psycopg3 Postgres driver (the [postgres] extra in pyproject.toml).
+    buildCommand: pip install -e ".[postgres]"
+    # Render injects $PORT; the app creates tables + seeds the synthetic scenario on first boot (lifespan).
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # Neon connection string — paste in the dashboard (kept out of git). Use Neon's DIRECT URL
+      # (not the -pooler host) for this single small service. sync:false ⇒ set manually/secret.
+      - key: VRA_DATABASE_URL
+        sync: false
+      # Your Vercel URL once the frontend is deployed, e.g. https://efficast-vra.vercel.app
+      - key: VRA_FRONTEND_ORIGIN
+        sync: false
+      # "1" = demo (persona switcher + reset endpoint). Set "0" for a real production deploy
+      # (anonymous requests are then rejected instead of treated as supervisor — see auth.py / B1).
+      - key: VRA_DEMO_MODE
+        value: "1"

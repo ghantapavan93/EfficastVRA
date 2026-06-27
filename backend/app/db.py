@@ -28,13 +28,33 @@ def _ensure_sqlite_dir(url: str) -> None:
             Path(db_path).parent.mkdir(parents=True, exist_ok=True)
 
 
-_ensure_sqlite_dir(_settings.database_url)
+def _normalize_db_url(url: str) -> str:
+    """SQLAlchemy needs an explicit driver. We ship psycopg (v3, the ``postgres`` extra), so map the
+    Postgres URL shapes managed providers hand out — Neon/Render give ``postgresql://`` and some give
+    the legacy ``postgres://`` — onto the psycopg3 driver. Non-Postgres URLs (SQLite) pass through."""
+    for prefix in ("postgresql+psycopg://",):
+        if url.startswith(prefix):
+            return url
+    if url.startswith("postgres://"):
+        return "postgresql+psycopg://" + url[len("postgres://"):]
+    if url.startswith("postgresql://"):
+        return "postgresql+psycopg://" + url[len("postgresql://"):]
+    return url
+
+
+_db_url = _normalize_db_url(_settings.database_url)
+_ensure_sqlite_dir(_db_url)
 
 _connect_args = {"check_same_thread": False} if _settings.is_sqlite else {}
+# On a managed Postgres (Neon) that scales to zero, connections drop while suspended; pre-ping
+# revalidates a connection before use and recycle drops stale ones, so the first request after a
+# resume succeeds instead of erroring. SQLite keeps its original (pool-less) behaviour.
+_engine_kwargs: dict = {} if _settings.is_sqlite else {"pool_pre_ping": True, "pool_recycle": 300}
 engine: Engine = create_engine(
-    _settings.database_url,
+    _db_url,
     echo=os.getenv("VRA_SQL_ECHO") == "1",
     connect_args=_connect_args,
+    **_engine_kwargs,
 )
 
 

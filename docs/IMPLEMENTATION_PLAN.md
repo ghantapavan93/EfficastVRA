@@ -23,7 +23,14 @@ git history and `docs/`.)
   consume + publish‑verdict‑back; auth "to be agreed"); consumption seam.
 - **Futuristic frontend pass** + M7 live/stale/offline connection indicator.
 
-**Baseline:** backend **117 pytest** passing · frontend **24 vitest** passing · typecheck/lint/build clean.
+**Baseline:** backend **119 pytest** passing · frontend **24 vitest** passing · typecheck/lint/build clean.
+
+**Deployment readiness (Render + Vercel + Neon, all free):** the repo deploys by *configuration, not code*
+— `main.py` lifespan creates tables + seeds on first boot; `/health` exists; `db.py` normalizes a
+`postgres(ql)://` URL to psycopg3 and enables `pool_pre_ping`/`pool_recycle` for Neon scale-to-zero;
+`config.py` also accepts `DATABASE_URL`; the frontend already reads `BACKEND_URL` from env. Ship files:
+`render.yaml`, `backend/.python-version`, `docs/DEPLOYMENT.md` (step-by-step). The `psycopg[binary]`
+driver is the existing `[postgres]` extra. Local SQLite dev/tests unchanged.
 
 ## Current phase — Phase 32: Discovery Q&A (evidence‑backed)
 **Goal:** answer the 12 founder/judge discovery questions in depth, each grounded in actual code + a test,

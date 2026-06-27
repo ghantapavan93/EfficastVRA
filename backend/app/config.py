@@ -20,7 +20,10 @@ _DEFAULT_DB = (Path(__file__).resolve().parent.parent / "var" / "vra.db").as_pos
 class Settings:
     app_name: str = "Verified Recovery Agent"
     environment: str = os.getenv("VRA_ENV", "synthetic-demo")
-    database_url: str = os.getenv("VRA_DATABASE_URL", f"sqlite:///{_DEFAULT_DB}")
+    # VRA_DATABASE_URL is canonical; DATABASE_URL is accepted too (Render/Neon/Heroku convention).
+    database_url: str = (
+        os.getenv("VRA_DATABASE_URL") or os.getenv("DATABASE_URL") or f"sqlite:///{_DEFAULT_DB}"
+    )
     tenant_id: str = os.getenv("VRA_TENANT", "northstar")
     plant_id: str = os.getenv("VRA_PLANT", "PLANT-NS")
 
