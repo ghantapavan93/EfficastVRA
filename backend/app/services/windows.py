@@ -12,6 +12,19 @@ from app.domain.models import RecoveryContract, RecoveryWindow
 
 _settings = get_settings()
 
+# The plant's *normal* operating context — the reference the Comparable-Conditions Gate compares a
+# verification window against. Synthetic PROTOTYPE_ASSUMPTION; in a real deployment this comes from the MES.
+DEFAULT_OPERATING_CONTEXT: dict = {
+    "product": "PKG-STD-12",
+    "speed_pct": 95.0,
+    "load": "nominal",
+    "material_lot": "LOT-7741",
+    "machine_mode": "AUTO",
+    "shift": "A",
+    "ambient_c": 24.0,
+    "sensor_health": "ok",
+}
+
 
 def get_active_window(session: Session, contract: RecoveryContract) -> Optional[RecoveryWindow]:
     return session.exec(
@@ -30,6 +43,8 @@ def open_window(
     sequence: int,
     required_stable_cycles: int,
     baseline: dict,
+    baseline_context: Optional[dict] = None,
+    observed_context: Optional[dict] = None,
 ) -> RecoveryWindow:
     win = RecoveryWindow(
         tenant_id=_settings.tenant_id,
@@ -39,6 +54,8 @@ def open_window(
         required_stable_cycles=required_stable_cycles,
         status="open",
         baseline=baseline,
+        baseline_context=baseline_context if baseline_context is not None else dict(DEFAULT_OPERATING_CONTEXT),
+        observed_context=observed_context if observed_context is not None else dict(DEFAULT_OPERATING_CONTEXT),
         opened_at=utcnow(),
     )
     session.add(win)

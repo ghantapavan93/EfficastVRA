@@ -315,7 +315,9 @@ class RecoveryService:
             if result.verdict == "verified":
                 graph.observe(incident, contract, result, cycle=_obs.cycle_index)
                 self.finalize(incident)
-                outcome = "verified"
+                # finalize applies the comparable-conditions ceiling: it may certify VERIFIED or, when
+                # conditions aren't comparable, block closure → INSUFFICIENT_EVIDENCE. Reflect the real state.
+                outcome = "verified" if incident.state == WorkflowState.VERIFIED_RECOVERY else "insufficient_evidence"
                 break
         if outcome == "monitoring" and last_result is not None:
             graph.observe(incident, contract, last_result, cycle=last_cycle)
@@ -387,6 +389,40 @@ class RecoveryService:
         result = evaluate(self.session, contract)
         if result.verdict != "verified":
             raise WorkflowError("cannot finalize: recovery not verified")
+
+        # Comparable-Conditions ceiling (rule ccr-1.0): even with every hard condition passed, recovery may
+        # NOT be certified VERIFIED when operating conditions are not comparable — the improvement cannot be
+        # attributed to the intervention. Block closure → INSUFFICIENT_EVIDENCE; create NO knowledge candidate.
+        from app.domain.enums import OutcomeType
+        from app.services.comparable_conditions import assess_comparability
+        from app.services.recovery_policy import (
+            ELIGIBLE,
+            confounders_of,
+            derive_effective_recovery_confidence,
+        )
+        from app.services.recovery_signature import score_signature
+
+        comp = assess_comparability(self.session, incident)
+        raw_conf = (score_signature(self.session, contract).alignment + 1.0) / 2.0
+        policy = derive_effective_recovery_confidence(
+            raw_conf, comp.get("classification", "UNKNOWN"), comp.get("confidence_multiplier", 0.5),
+            ELIGIBLE, confounders=confounders_of(comp))
+        if policy.policy_result != "VERIFIED":
+            note = policy.notes[0] if policy.notes else "operating conditions not comparable."
+            transition(self.session, incident, WorkflowState.INSUFFICIENT_EVIDENCE,
+                       actor="system", role=Role.SYSTEM, reason=f"comparable-conditions ceiling — {note}")
+            incident.outcome_type = OutcomeType.INSUFFICIENT_EVIDENCE
+            incident.outcome_summary = f"Recovery NOT certified — {note}"
+            self.session.add(incident)
+            record_audit(self.session, type=AuditEventType.RECOVERY_INSUFFICIENT,
+                         correlation_id=incident.correlation_id, actor="system", role=Role.SYSTEM,
+                         summary="Closure blocked by the comparable-conditions ceiling; no knowledge candidate.",
+                         incident_id=incident.id, contract_id=contract.id, detail=policy.as_provenance())
+            notify.dispatch(self.session, to_role=Role.SUPERVISOR, kind="insufficient_evidence",
+                            title=f"Recovery NOT certified — {incident.id}", body=incident.outcome_summary,
+                            incident=incident, action_path=f"/missions/{incident.id}?tab=comparability")
+            self.session.flush()
+            return
         # Release held lots (quality already approved as part of 'verified').
         lots = self.session.exec(
             select(MaterialLot).where(MaterialLot.order_id == incident.order_id)
@@ -408,7 +444,8 @@ class RecoveryService:
         record_audit(self.session, type=AuditEventType.RECOVERY_VERIFIED,
                      correlation_id=incident.correlation_id, actor="system", role=Role.SYSTEM,
                      summary="Verified recovery published.", incident_id=incident.id,
-                     contract_id=contract.id, detail={"stable_cycles": result.stable_streak})
+                     contract_id=contract.id,
+                     detail={"stable_cycles": result.stable_streak, **policy.as_provenance()})
         self._gw(incident, "publish_recovery_decision",
                  {"incident_id": incident.id, "decision_type": "verified_recovery",
                   "summary": result.summary}, self._agent(incident),

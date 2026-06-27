@@ -49,9 +49,10 @@ def test_bearing_window_is_strongly_consistent(session: Session):
     res = score_signature(session, c2)
     assert res.rung == STRONGLY_CONSISTENT
     assert res.alignment > 0.9
-    # the top rung must always disclose the unverified-conditions confound
-    assert res.conditions_matched == "UNKNOWN"
-    assert any("conditions-unverified" in c for c in res.caveats)
+    # conditions are now positively assessed by the Comparable-Conditions gate (was hardcoded UNKNOWN):
+    # the bearing window runs under the plant's normal context ⇒ COMPARABLE, and the stale disclaimer is retired
+    assert res.conditions_matched == "COMPARABLE"
+    assert not any("conditions-unverified" in c for c in res.caveats)
 
 
 def test_alignment_window_is_not_consistent(session: Session):
@@ -99,4 +100,4 @@ def test_signature_view_serializes_for_the_api(session: Session):
     assert view["available"] is True
     assert view["rung"] == STRONGLY_CONSISTENT
     assert isinstance(view["signals"], list) and view["signals"]
-    assert view["conditions_matched"] == "UNKNOWN"
+    assert view["conditions_matched"] == "COMPARABLE"

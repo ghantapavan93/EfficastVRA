@@ -497,6 +497,11 @@ class RecoveryWindow(Base, table=True):
     stable_streak: int = 0
     status: str = "open"  # open | monitoring | passed | failed
     baseline: dict = Field(default_factory=dict, sa_type=JSON)
+    # Operating context for the Comparable-Conditions Gate: the *normal* reference vs the conditions during
+    # this verification window (product/speed/load/lot/mode/shift/ambient/sensor health). If before≠after
+    # the apparent recovery may be a confound — see services/comparable_conditions.py. PROTOTYPE_ASSUMPTION.
+    baseline_context: dict = Field(default_factory=dict, sa_type=JSON)
+    observed_context: dict = Field(default_factory=dict, sa_type=JSON)
     opened_at: Optional[datetime] = None
     started_at: Optional[datetime] = None
     closed_at: Optional[datetime] = None

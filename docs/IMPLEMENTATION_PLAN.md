@@ -23,7 +23,7 @@ git history and `docs/`.)
   consume + publish‑verdict‑back; auth "to be agreed"); consumption seam.
 - **Futuristic frontend pass** + M7 live/stale/offline connection indicator.
 
-**Baseline:** backend **134 pytest** passing · frontend **24 vitest** passing · typecheck/lint/build clean.
+**Baseline:** backend **159 pytest** passing · frontend **24 vitest** passing · typecheck/lint/build clean.
 
 **Phase 36 — Recovery Assurance R&D (in progress).** Four web-grounded research tracks (novelty/category,
 causal-consistency model, contract DSL+FSM, evaluation/data/verdict) → [`CAUSAL_RECOVERY_RESEARCH.md`](CAUSAL_RECOVERY_RESEARCH.md)
@@ -56,8 +56,58 @@ stable-cycle margin + weakest validated evidence (each factor's contribution sho
 high). Route `/api/incidents/{id}/closure-risk`; surfaced as an animated **radial risk gauge** with
 per-factor bars (`components/mission/closure-risk-panel.tsx`) — verified live (6% · Low on the verified
 hero). Tests: `test_false_closure_risk.py` (3). The full advisory vertical is now live: Contract →
-Signature → Calibration → Certificate → Closure-Risk. Next: 37 generative-physics data + fleet; 38
-adversarial golden suite.
+Signature → Calibration → Certificate → Closure-Risk.
+
+**40 shipped — Recovery Disposition (the four-outcome decision, made explicit) + integrity fixes** (from an
+external product review mapped to code): `services/disposition.py` classifies an incident's current truth as
+VERIFIED / CONDITIONAL / FAILED / INSUFFICIENT_EVIDENCE / ESCALATION_REQUIRED (else IN_PROGRESS), and exposes
+(a) the **hard closure invariants** as a pass/fail checklist — `can_close` = the evaluator's verdict, which a
+low risk score can never override; and (b) the **technician↔telemetry↔quality status matrix** → recommends
+escalation on disagreement instead of forcing a winner (supervisor-intent flagged as an honest gap). Route
+`/api/incidents/{id}/disposition`; UI `components/mission/disposition-panel.tsx`. Read-only; the evaluator
+still owns closure. Also fixed a real applicability bug: `rag/retrieval.py` now enforces **effective_date**
+(a future-dated procedure is no longer retrieved before it is effective). Tests: `test_disposition.py` (4),
+`test_retrieval_effective_date.py` (1). Confirmed already-present (review surfaced, code verifies): the
+causal-confidence ladder w/ honesty caps (`recovery_signature.py`), intervention "fingerprints"
+(`expected_signature`), contract versioning (`superseded_by`), evidence provenance + freshness-at-closure.
+Genuinely deferred: Recovery-Debt/Conditional persistence, structured V1→V2 change-delta, supervisor-intent
+capture, knowledge-candidate revisioning. Next: 37 generative-physics data + fleet; 38 adversarial golden suite.
+
+**41 shipped — Comparable-Conditions Gate (the causal-honesty backbone) + parallel research program.**
+Driven by a principal-level program request, run as: (a) a parallel research **workflow** (3 read-only
+agents → synthesis) on competitors, comparable-conditions methods, and return-to-service standards; (b) deep
+implementation of the #1 new primitive. **Gate:** `services/comparable_conditions.py` compares the plant's
+normal operating context against the verification window's context across 8 dimensions (product, mode, load,
+sensor health, speed = key; ambient = minor; lot, shift = info) → COMPARABLE / PARTIALLY_COMPARABLE /
+NOT_COMPARABLE / UNKNOWN with a per-dimension breakdown + confidence multiplier; **default-deny** (missing
+context → UNKNOWN, never silently comparable). Window gains `baseline_context` + `observed_context` (JSON;
+`windows.DEFAULT_OPERATING_CONTEXT`). Wired into the **disposition**: NOT_COMPARABLE + machine-recovered →
+INSUFFICIENT_EVIDENCE (confound risk). Route `/api/incidents/{id}/comparability`; UI
+`components/mission/comparable-conditions-panel.tsx`. Read-only; the evaluator still owns closure. Also
+fixed `effective_date` enforcement in RAG (Phase 40). Tests: `test_comparable_conditions.py` (6). Research
+docs written: `COMPETITOR_AUDIT.md`, `CATEGORY_DEFINITION.md` (category = **Post-Intervention Production
+Requalification**; standards: nuclear PMT, pharma IQ/OQ/PQ+CPV, aviation RTS/CRS, ISO CAPA), `NOVELTY_CLAIMS.md`
+(3 defensible claims; 9 overclaims to remove). **Deferred next (research-prioritized):** upgrade the gate to
+SMD + baseline-band + CUSUM; cap the signature ladder via the gate (min() ceiling); Recovery-Debt/Conditional
+persistence; emit context per-cycle from the generator.
+
+**42 shipped — Comparable-Conditions as a system-wide decision invariant (rule `ccr-1.0`).** One canonical
+policy, `services/recovery_policy.py::derive_effective_recovery_confidence(raw, comparability, multiplier,
+evidence_status)` → it can only LOWER confidence, never raise it, and never overrides a hard requirement.
+COMPARABLE = normal; PARTIALLY = reduced + confounders exposed + strong causal language withheld;
+NOT_COMPARABLE/UNKNOWN = forced INSUFFICIENT_EVIDENCE (UNKNOWN is default-deny); FAILED relapse and missing
+quality/evidence/freshness gates dominate regardless of comparability. Applied to: signature ladder (caps the
+rung, retires the hardcoded `conditions_matched=UNKNOWN`), disposition (policy-driven `can_close`),
+**finalize closure gate** (a non-comparable recovery cannot reach VERIFIED_RECOVERY → INSUFFICIENT_EVIDENCE,
+and **no knowledge candidate** is created), certificate (status `not_certified` when blocked), false-closure
+risk (new comparability factor), and the frontend badges. Provenance recorded (raw / classification /
+multiplier / effective / confounders / policy_result / rule_version) on the verified + insufficient audit
+events and in every API payload; new audit type `RECOVERY_INSUFFICIENT`. Tests: `test_recovery_policy.py`
+(14) — incl. raw 0.99 + NOT_COMPARABLE/UNKNOWN → INSUFFICIENT, PARTIALLY reduces, COMPARABLE normal, relapse
+stays FAILED, missing quality/stale still block, no surface shows VERIFIED when effective = INSUFFICIENT, KC
+blocked unless comparable. Docs hardened with citations + confidence legend (COMPETITOR_AUDIT /
+CATEGORY_DEFINITION / NOVELTY_CLAIMS). Next (research-prioritized): upgrade gate internals to SMD/CUSUM;
+**Recovery Debt / Conditional** (separate phase); per-cycle context emission.
 
 **Deployment readiness (Render + Vercel + Neon, all free):** the repo deploys by *configuration, not code*
 — `main.py` lifespan creates tables + seeds on first boot; `/health` exists; `db.py` normalizes a

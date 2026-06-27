@@ -33,9 +33,12 @@ from app.services.recovery_signature import score_signature
 _W = {
     "signature": 0.45,    # intervention inconsistency (1 − signature p_holds)
     "precursor": 0.30,    # live relapse precursor (forecaster p_relapse)
+    "comparability": 0.30,  # operating conditions not comparable → can't attribute recovery (confound)
     "streak": 0.15,       # stable‑cycle shortfall vs the contract's required window
     "evidence": 0.10,     # weakest *validated* evidence (1 − min trust)
 }
+# how much a comparability class contributes to false-closure risk (NOT_COMPARABLE/UNKNOWN are high)
+_COMPARABILITY_RISK = {"COMPARABLE": 0.0, "PARTIALLY_COMPARABLE": 0.4, "NOT_COMPARABLE": 1.0, "UNKNOWN": 0.7}
 _LOW, _HIGH = 0.25, 0.60   # band thresholds
 
 
@@ -65,6 +68,14 @@ def assess_false_closure_risk(session: Session, incident: Incident) -> dict:
     factors.append({"key": "signature", "label": "Intervention inconsistency",
                     "weight": _W["signature"], "value": _clamp(1.0 - p_holds),
                     "detail": f"signature alignment {sig.alignment:+.2f} ({sig.rung.replace('_', ' ')})"})
+
+    # 2a. comparable-conditions risk — a confound (changed product/load/speed/sensor) inflates false-closure risk
+    from app.services.comparable_conditions import assess_comparability
+    comp = assess_comparability(session, incident)
+    _class = comp.get("classification", "UNKNOWN")
+    factors.append({"key": "comparability", "label": "Operating conditions not comparable",
+                    "weight": _W["comparability"], "value": _COMPARABILITY_RISK.get(_class, 0.7),
+                    "detail": f"comparability {_class.replace('_', ' ').lower()}"})
 
     # 2. live relapse precursor (forecaster) — only when a live forecast exists
     try:

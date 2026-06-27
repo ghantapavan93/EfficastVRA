@@ -545,6 +545,9 @@ export interface SignatureView {
   conditions_matched?: string;
   observed_cycles?: number;
   basis?: string;
+  effective_confidence?: number;
+  confounding_dimensions?: string[];
+  rule_version?: string;
 }
 
 export interface CertCondition { key: string; kind: string; op: string; status: string; label: string }
@@ -584,11 +587,59 @@ export interface CertificateView {
   required_stable_cycles?: number;
   reopened_count?: number;
   signature?: { rung: string; alignment: number; conditions_matched: string };
+  comparability?: { classification?: string; confidence_multiplier?: number | null; confounding_dimensions?: string[] };
+  policy_provenance?: Record<string, unknown>;
   audit?: { intact: boolean; entries: number | null; head_hash: string };
   certificate_hash?: string;
   trustworthy?: boolean;
   summary?: string;
   basis?: string;
+}
+
+export interface ComparabilityDim {
+  key: string;
+  label: string;
+  baseline: string | number | null;
+  observed: string | number | null;
+  status: string; // match | shift | unknown
+  weight: string; // key | minor | info
+  note: string;
+}
+
+export interface ComparabilityView {
+  available: boolean;
+  incident_id: string;
+  classification?: string; // COMPARABLE | PARTIALLY_COMPARABLE | NOT_COMPARABLE | UNKNOWN
+  confidence_multiplier?: number;
+  key_shifts?: number;
+  minor_shifts?: number;
+  dimensions?: ComparabilityDim[];
+  implication?: string;
+  reason?: string;
+  basis?: string;
+}
+
+export interface DispInvariant { key: string; label: string; ok: boolean; detail: string }
+
+export interface DispositionView {
+  available: boolean;
+  incident_id: string;
+  disposition?: string; // VERIFIED | CONDITIONAL | FAILED | INSUFFICIENT_EVIDENCE | ESCALATION_REQUIRED | IN_PROGRESS
+  meaning?: string;
+  decided?: boolean;
+  can_close?: boolean;
+  verdict?: string;
+  reasons?: string[];
+  hard_invariants?: DispInvariant[];
+  human_status?: { technician: string; telemetry: string; quality: string; supervisor: string };
+  conflict?: boolean;
+  effective_confidence?: number | null;
+  comparability?: { classification?: string; confidence_multiplier?: number | null; key_shifts?: number; confounding_dimensions?: string[] };
+  policy_provenance?: Record<string, unknown>;
+  stable_cycles?: number;
+  required_stable_cycles?: number;
+  basis?: string;
+  reason?: string;
 }
 
 export interface FcrsFactor {

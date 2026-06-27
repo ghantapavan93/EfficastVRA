@@ -64,3 +64,16 @@ def to_window2_stable(session: Session, cycles: int = 30) -> tuple[RecoveryServi
     svc.complete_contingency(inc)
     svc.advance(inc, cycles)
     return svc, inc, c2
+
+
+def to_quality_released(session: Session, cycles: int = 30) -> tuple[RecoveryService, Incident, RecoveryContract]:
+    """Reach a verified-ELIGIBLE state on the bearing contract: ``cycles`` stable cycles + first-piece +
+    quality release, but NOT yet finalized — so ``finalize`` can be called/observed under the ceiling.
+    The evaluator verdict is 'verified'; only finalize() (the comparable-conditions gate) decides closure."""
+    svc, inc, c2 = to_window2_stable(session, cycles=cycles)
+    qual = principal(session, "q.idris")
+    svc.submit_evidence(inc, qual, requirement_id=req_id(session, c2.id, "first_piece_quality"),
+                        value_text="pass")
+    svc.record_approval(inc, qual, requirement_id=appr_id(session, c2.id, "quality_release"),
+                        reason="first-piece passed; lots dispositioned")
+    return svc, inc, c2

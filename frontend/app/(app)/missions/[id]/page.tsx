@@ -13,6 +13,8 @@ import { DecisionPanel } from "@/components/mission/decision-panel";
 import { ReliabilityPanel } from "@/components/mission/reliability-panel";
 import { RecoverySignaturePanel } from "@/components/mission/recovery-signature-panel";
 import { ClosureRiskPanel } from "@/components/mission/closure-risk-panel";
+import { DispositionPanel } from "@/components/mission/disposition-panel";
+import { ComparableConditionsPanel } from "@/components/mission/comparable-conditions-panel";
 import { ProvenancePanel } from "@/components/mission/provenance-panel";
 import { DiagnosisPanel } from "@/components/mission/diagnosis-panel";
 import { ContingencyCompare } from "@/components/mission/contingency-compare";
@@ -50,7 +52,9 @@ function MissionDetail({ id }: { id: string }) {
     { key: "decision", label: "Decision Intelligence" },
     { key: "reliability", label: "Recovery Confidence" },
     { key: "signature", label: "Recovery Signature" },
+    { key: "comparability", label: "Comparable Conditions" },
     { key: "closure-risk", label: "Closure Risk" },
+    { key: "disposition", label: "Disposition" },
     { key: "contract", label: "Recovery Contract" },
     { key: "evidence", label: "Evidence" },
     { key: "timeline", label: "Verification Timeline" },
@@ -97,7 +101,9 @@ function MissionDetail({ id }: { id: string }) {
         {tab === "decision" && <DecisionPanel incidentId={id} />}
         {tab === "reliability" && <ReliabilityPanel incidentId={id} />}
         {tab === "signature" && <RecoverySignaturePanel incidentId={id} />}
+        {tab === "comparability" && <ComparableConditionsPanel incidentId={id} />}
         {tab === "closure-risk" && <ClosureRiskPanel incidentId={id} />}
+        {tab === "disposition" && <DispositionPanel incidentId={id} />}
         {tab === "contract" && <ContractPanel incidentId={id} />}
         {tab === "evidence" && <EvidenceQueue incidentId={id} />}
         {tab === "timeline" && <VerificationTimeline incidentId={id} />}

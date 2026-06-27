@@ -8,10 +8,12 @@ can never become authoritative — no matter how lexically similar it is to the 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Optional
 
 from sqlmodel import Session, select
 
+from app.domain.base import utcnow
 from app.domain.enums import DocApprovalStatus
 from app.domain.models import DocumentChunk
 from app.rag.embeddings import cosine, embed
@@ -32,6 +34,7 @@ class RetrievedChunk:
     content_hash: str
     score: float
     superseded_by: Optional[str] = None
+    effective_date: Optional[str] = None
 
 
 def _applicable(chunk: DocumentChunk, machine_model: Optional[str], component: Optional[str],
@@ -52,6 +55,7 @@ def _to_view(chunk: DocumentChunk, score: float) -> RetrievedChunk:
         approval_status=chunk.approval_status.value, plant_scope=chunk.plant_scope,
         page=chunk.page, section=chunk.section, content=chunk.content,
         content_hash=chunk.content_hash, score=round(score, 4), superseded_by=chunk.superseded_by,
+        effective_date=(chunk.effective_date.isoformat() if chunk.effective_date else None),
     )
 
 
@@ -63,8 +67,12 @@ def search(
     component: Optional[str] = None,
     plant_scope: Optional[str] = None,
     approved_only: bool = True,
+    as_of: Optional[datetime] = None,
     k: int = 5,
 ) -> list[RetrievedChunk]:
+    # ``as_of`` defaults to now: a procedure whose effective_date is in the future is NOT yet authoritative
+    # and must not be retrieved — an applicability gate alongside approval/supersession.
+    as_of = as_of or utcnow()
     chunks = session.exec(select(DocumentChunk)).all()
     qv = embed(query)
 
@@ -72,6 +80,8 @@ def search(
     for c in chunks:
         if approved_only and (c.approval_status != DocApprovalStatus.APPROVED or c.superseded_by):
             continue  # approval/recency filter BEFORE similarity
+        if c.effective_date is not None and as_of < c.effective_date:
+            continue  # not yet effective — a future-dated revision can't be authoritative today
         if not _applicable(c, machine_model, component, plant_scope):
             continue
         filtered.append(c)

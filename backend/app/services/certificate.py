@@ -54,8 +54,30 @@ def build_certificate(session: Session, incident: Incident) -> dict:
     ).first()
     sig = score_signature(session, contract)
 
+    # Comparable-Conditions ceiling (rule ccr-1.0): a certificate may not certify VERIFIED recovery when
+    # operating conditions are not comparable, even if the hard gate closed the incident.
+    from app.services.comparable_conditions import assess_comparability
+    from app.services.recovery_policy import (
+        ELIGIBLE,
+        INSUFFICIENT,
+        confounders_of,
+        derive_effective_recovery_confidence,
+    )
+
     closed = bool(prov["closed"])
-    status = "certified" if closed else ("reopened" if incident.reopened_count else "pending")
+    comp = assess_comparability(session, incident)
+    policy = derive_effective_recovery_confidence(
+        (sig.alignment + 1.0) / 2.0, comp.get("classification", "UNKNOWN"),
+        comp.get("confidence_multiplier", 0.5), ELIGIBLE if closed else INSUFFICIENT,
+        confounders=confounders_of(comp))
+    certifiable = closed and policy.policy_result == "VERIFIED"
+    if certifiable:
+        status, verdict = "certified", "VERIFIED_RECOVERY"
+    elif closed:  # hard gate closed it, but the comparability ceiling withholds certification
+        status, verdict = "not_certified", "INSUFFICIENT_EVIDENCE"
+    else:
+        status = "reopened" if incident.reopened_count else "pending"
+        verdict = prov["state"]
     head_hash = _audit_head_hash(session, incident.correlation_id)
     issued_at = (incident.closed_at or utcnow()).isoformat()
 
@@ -73,7 +95,7 @@ def build_certificate(session: Session, incident: Incident) -> dict:
         "incident_id": incident.id,
         "certificate_id": f"RSC-{incident.id}-v{contract.version}",
         "status": status,
-        "verdict": "VERIFIED_RECOVERY" if closed else prov["state"],
+        "verdict": verdict,
         "issued_at": issued_at,
         "issuer": "Verified Recovery Agent — independent deterministic verification layer (advisory; "
                   "no machine control). Synthetic prototype.",
@@ -99,8 +121,12 @@ def build_certificate(session: Session, incident: Incident) -> dict:
         "stable_cycles": (window.stable_streak if window else 0),
         "required_stable_cycles": (window.required_stable_cycles if window else 0),
         "reopened_count": incident.reopened_count,
-        # intervention‑consistency (advisory)
+        # intervention‑consistency (advisory) + comparable-conditions ceiling provenance (rule ccr-1.0)
         "signature": {"rung": sig.rung, "alignment": sig.alignment, "conditions_matched": sig.conditions_matched},
+        "comparability": {"classification": comp.get("classification", "UNKNOWN"),
+                          "confidence_multiplier": comp.get("confidence_multiplier"),
+                          "confounding_dimensions": policy.confounding_dimensions},
+        "policy_provenance": policy.as_provenance(),
         # tamper‑evident seal
         "audit": {"intact": bool(prov["audit"].get("ok")), "entries": prov["audit"].get("count"),
                   "head_hash": head_hash},

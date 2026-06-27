@@ -248,6 +248,30 @@ def closure_risk(incident_id: str, session: Session = Depends(get_session)) -> d
     return assess_false_closure_risk(session, inc)
 
 
+@router.get("/incidents/{incident_id}/disposition")
+def disposition(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """Recovery Disposition — the four-outcome decision made explicit: VERIFIED / CONDITIONAL / FAILED /
+    INSUFFICIENT_EVIDENCE / ESCALATION_REQUIRED (else IN_PROGRESS), the hard closure invariants (each
+    pass/fail), and the technician↔telemetry↔quality status matrix. Read-only; the evaluator owns closure."""
+    from app.services.disposition import assess_disposition
+
+    inc = _incident(session, incident_id)
+    out = assess_disposition(session, inc)
+    session.commit()  # evaluate() refreshes condition rows — persist them like the other evaluating GETs
+    return out
+
+
+@router.get("/incidents/{incident_id}/comparability")
+def comparability(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """Comparable-Conditions Gate — did before/after run under conditions we can responsibly compare?
+    Returns COMPARABLE / PARTIALLY_COMPARABLE / NOT_COMPARABLE / UNKNOWN with a per-dimension breakdown.
+    Read-only & advisory; guards against attributing a confound to the intervention."""
+    from app.services.comparable_conditions import assess_comparability
+
+    inc = _incident(session, incident_id)
+    return assess_comparability(session, inc)
+
+
 @router.get("/incidents/{incident_id}/sensitivity")
 def sensitivity(incident_id: str, session: Session = Depends(get_session)) -> dict:
     """Counterfactual contract calibration — replays the deterministic verifier over the real trajectory

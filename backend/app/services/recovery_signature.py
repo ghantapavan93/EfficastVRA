@@ -34,6 +34,7 @@ from sqlmodel import Session, select
 from app.domain.base import utcnow
 from app.domain.enums import CompareOp, ConditionKind
 from app.domain.models import (
+    Incident,
     RecoveryCondition,
     RecoveryContract,
     RecoveryObservation,
@@ -70,9 +71,13 @@ class SignatureResult:
     alignment: float                       # weighted match of observed trajectory vs expected, [-1, 1]
     signals: list[dict] = field(default_factory=list)   # per-signal expectation + agreement
     caveats: list[str] = field(default_factory=list)
-    conditions_matched: str = "UNKNOWN"    # operating-conditions match (load/product/speed) — not yet captured
+    conditions_matched: str = "UNKNOWN"    # the Comparable-Conditions verdict (populated by the live wrapper)
     observed_cycles: int = 0
     basis: str = ""
+    # comparable-conditions ceiling (rule ccr-1.0) — populated by score_signature (the live path)
+    effective_confidence: float = 0.0
+    confounding_dimensions: list = field(default_factory=list)
+    rule_version: str = ""
 
 
 def _direction_for(op: CompareOp) -> Optional[str]:
@@ -261,6 +266,43 @@ def score_signature(
         .where(RecoveryObservation.window_id == win.id)
         .order_by(RecoveryObservation.cycle_index)  # type: ignore[arg-type]
     ).all()
-    return score_observations(
+    res = score_observations(
         conditions, obs, required_stable=win.required_stable_cycles or 30, stable_streak=win.stable_streak
     )
+    return _apply_comparability_ceiling(session, contract, res)
+
+
+def _apply_comparability_ceiling(
+    session: Session, contract: RecoveryContract, res: SignatureResult
+) -> SignatureResult:
+    """Lower the causal-confidence rung to whatever the Comparable-Conditions verdict permits (rule ccr-1.0).
+    This is the honest replacement for the previously-hardcoded ``conditions_matched = UNKNOWN`` — the
+    signature may not claim a strong causal rung when the before/after weren't comparable. Read-only."""
+    from app.services.comparable_conditions import assess_comparability
+    from app.services.recovery_policy import (
+        RULE_VERSION,
+        cap_rung,
+        confounders_of,
+    )
+
+    incident = session.get(Incident, contract.incident_id)
+    comp = assess_comparability(session, incident) if incident else {"classification": "UNKNOWN"}
+    classification = comp.get("classification", "UNKNOWN")
+    capped = cap_rung(res.rung, classification)
+
+    res.conditions_matched = classification
+    res.confounding_dimensions = confounders_of(comp)
+    res.effective_confidence = round(((res.alignment + 1.0) / 2.0) * (comp.get("confidence_multiplier") or 1.0), 3)
+    res.rule_version = RULE_VERSION
+    if classification == "COMPARABLE":
+        # the comparability gate now positively verifies conditions → retire the standing generic disclaimer
+        res.caveats = [c for c in res.caveats if "conditions-unverified" not in c]
+        res.caveats.append("operating conditions verified COMPARABLE — the changed-conditions confound is "
+                           "ruled out for the captured dimensions.")
+    if capped != res.rung:
+        res.caveats.append(
+            f"comparable-conditions ceiling: capped from '{res.rung.replace('_', ' ')}' to "
+            f"'{capped.replace('_', ' ')}' — operating conditions are {classification.replace('_', ' ').lower()}"
+            + (f" (shifted: {', '.join(res.confounding_dimensions)})" if res.confounding_dimensions else "") + ".")
+    res.rung = capped
+    return res

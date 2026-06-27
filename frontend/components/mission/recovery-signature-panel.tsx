@@ -85,6 +85,19 @@ export function RecoverySignaturePanel({ incidentId }: { incidentId: string }) {
           −1 (contradicts) → +1 (matches the expected response). Derived from the contract&apos;s own
           conditions; weighted so fault non-recurrence and the precursor outrank headline metrics.
         </p>
+        {data.conditions_matched && (
+          <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-line pt-2 text-[11px] text-ink-mut">
+            <span className="label">Comparable conditions</span>
+            <Chip>{data.conditions_matched.replace(/_/g, " ").toLowerCase()}</Chip>
+            {typeof data.effective_confidence === "number" && (
+              <span className="mono">effective conf {data.effective_confidence.toFixed(2)}</span>
+            )}
+            {data.confounding_dimensions && data.confounding_dimensions.length > 0 && (
+              <span>confounders: {data.confounding_dimensions.join(", ")}</span>
+            )}
+            <span className="ml-auto">ceiling caps the rung — never raises it (rule {data.rule_version || "ccr-1.0"})</span>
+          </div>
+        )}
       </div>
 
       {data.signals && data.signals.length > 0 && (

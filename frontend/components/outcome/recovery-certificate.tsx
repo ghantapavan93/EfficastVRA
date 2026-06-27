@@ -9,6 +9,7 @@ import type { CertApproval, CertCondition } from "@/lib/types";
 
 const STATUS: Record<string, { tone: Tone; label: string; line: string }> = {
   certified: { tone: "verified", label: "Certified", line: "Verified Recovery" },
+  not_certified: { tone: "warning", label: "Not certified", line: "Recovery NOT certified — conditions not comparable" },
   reopened: { tone: "failure", label: "Reopened", line: "Reopened — recovery not certified" },
   pending: { tone: "steel", label: "Pending", line: "Certification pending" },
 };

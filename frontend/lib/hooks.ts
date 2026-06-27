@@ -99,6 +99,24 @@ export function useClosureRisk(id: string, refetchInterval?: number) {
   });
 }
 
+export function useDisposition(id: string, refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({
+    queryKey: ["disposition", id, username],
+    queryFn: () => api.disposition(id),
+    refetchInterval,
+  });
+}
+
+export function useComparability(id: string, refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({
+    queryKey: ["comparability", id, username],
+    queryFn: () => api.comparability(id),
+    refetchInterval,
+  });
+}
+
 export function useDecision(id: string, refetchInterval?: number) {
   const { username } = useRole();
   return useQuery({
@@ -193,7 +211,7 @@ export function useTriageAlert() {
 export function useRecoveryActions(id: string) {
   const qc = useQueryClient();
   const invalidate = () => {
-    for (const key of ["missions", "mission", "contract", "evidence", "timeline", "outcome", "audit", "reasoning", "diagnosis", "alerts", "forecast", "signature", "certificate", "closure-risk", "decision", "reliability", "provenance", "sensitivity"]) {
+    for (const key of ["missions", "mission", "contract", "evidence", "timeline", "outcome", "audit", "reasoning", "diagnosis", "alerts", "forecast", "signature", "certificate", "closure-risk", "disposition", "comparability", "decision", "reliability", "provenance", "sensitivity"]) {
       qc.invalidateQueries({ queryKey: key === "missions" ? ["missions"] : [key, id] });
     }
   };
