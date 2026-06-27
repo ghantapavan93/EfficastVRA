@@ -272,6 +272,62 @@ def comparability(incident_id: str, session: Session = Depends(get_session)) -> 
     return assess_comparability(session, inc)
 
 
+@router.get("/incidents/{incident_id}/recovery-debt")
+def recovery_debt(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """The conditional-recovery waiver (concession) on this incident, if any — status, waived condition(s),
+    restrictions, expiry, monitoring, follow-up. Read-only."""
+    from app.services.recovery_debt import debt_view
+
+    inc = _incident(session, incident_id)
+    return debt_view(session, inc)
+
+
+class GrantDebtBody(BaseModel):
+    waived_condition_keys: list[str]
+    reason: str
+    restrictions: list[str] = []
+    expires_in_minutes: int = 90
+    monitoring_requirement: str = ""
+    follow_up: str = ""
+
+
+@router.post("/incidents/{incident_id}/recovery-debt/grant")
+def grant_recovery_debt(incident_id: str, body: GrantDebtBody, session: Session = Depends(get_session),
+                        principal: Principal = Depends(get_principal)) -> dict:
+    """Grant a time-boxed conditional-recovery waiver — routed through the Agent Action Gateway as an
+    APPROVAL_REQUIRED action (an authorised human only; never waives a relapse/quality/safety)."""
+    inc = _incident(session, incident_id)
+    out = gateway_execute(session, tool_name="grant_recovery_debt",
+                          raw_args={"incident_id": incident_id, **body.model_dump()}, principal=principal,
+                          correlation_id=inc.correlation_id, incident_id=incident_id,
+                          port=build_port(session), reasoning=build_reasoning())
+    session.commit()
+    return out.model_dump(mode="json")
+
+
+@router.post("/incidents/{incident_id}/recovery-debt/settle")
+def settle_recovery_debt_route(incident_id: str, session: Session = Depends(get_session),
+                               principal: Principal = Depends(get_principal)) -> dict:
+    """Settle the active waiver IFF the waived condition has now verified (deterministic). Read-back the debt."""
+    from app.services.recovery_debt import debt_view, settle_recovery_debt
+
+    inc = _incident(session, incident_id)
+    settle_recovery_debt(session, inc, actor=principal.username, role=principal.role)
+    session.commit()
+    return debt_view(session, inc)
+
+
+@router.post("/incidents/{incident_id}/recovery-debt/sweep")
+def sweep_recovery_debt_route(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """Breach-check the active waiver: if expired unsettled → BREACH + auto-escalate. Read-back the debt."""
+    from app.services.recovery_debt import debt_view, sweep_recovery_debt
+
+    inc = _incident(session, incident_id)
+    sweep_recovery_debt(session, inc)
+    session.commit()
+    return debt_view(session, inc)
+
+
 @router.get("/incidents/{incident_id}/sensitivity")
 def sensitivity(incident_id: str, session: Session = Depends(get_session)) -> dict:
     """Counterfactual contract calibration — replays the deterministic verifier over the real trajectory

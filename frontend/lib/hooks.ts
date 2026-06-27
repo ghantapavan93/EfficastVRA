@@ -117,6 +117,15 @@ export function useComparability(id: string, refetchInterval?: number) {
   });
 }
 
+export function useRecoveryDebt(id: string, refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({
+    queryKey: ["recovery-debt", id, username],
+    queryFn: () => api.recoveryDebt(id),
+    refetchInterval,
+  });
+}
+
 export function useDecision(id: string, refetchInterval?: number) {
   const { username } = useRole();
   return useQuery({
@@ -211,7 +220,7 @@ export function useTriageAlert() {
 export function useRecoveryActions(id: string) {
   const qc = useQueryClient();
   const invalidate = () => {
-    for (const key of ["missions", "mission", "contract", "evidence", "timeline", "outcome", "audit", "reasoning", "diagnosis", "alerts", "forecast", "signature", "certificate", "closure-risk", "disposition", "comparability", "decision", "reliability", "provenance", "sensitivity"]) {
+    for (const key of ["missions", "mission", "contract", "evidence", "timeline", "outcome", "audit", "reasoning", "diagnosis", "alerts", "forecast", "signature", "certificate", "closure-risk", "disposition", "comparability", "recovery-debt", "decision", "reliability", "provenance", "sensitivity"]) {
       qc.invalidateQueries({ queryKey: key === "missions" ? ["missions"] : [key, id] });
     }
   };
@@ -233,5 +242,17 @@ export function useRecoveryActions(id: string) {
         api.decide(v.reqId, { decision: v.decision, reason: v.reason }),
       onSuccess: invalidate,
     }),
+    grantDebt: useMutation({
+      mutationFn: (body: {
+        waived_condition_keys: string[];
+        reason: string;
+        restrictions?: string[];
+        expires_in_minutes?: number;
+        monitoring_requirement?: string;
+        follow_up?: string;
+      }) => api.grantRecoveryDebt(id, body),
+      onSuccess: invalidate,
+    }),
+    settleDebt: useMutation({ mutationFn: () => api.settleRecoveryDebt(id), onSuccess: invalidate }),
   };
 }

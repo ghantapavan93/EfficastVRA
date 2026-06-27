@@ -131,6 +131,9 @@ def assess_disposition(session: Session, incident: Incident) -> dict:
     comp = assess_comparability(session, incident)
     comparable = comp.get("classification", "UNKNOWN")
     confounders = confounders_of(comp)
+    from app.services.recovery_debt import active_debt, is_breached
+    debt = active_debt(session, incident)
+    debt_breached = bool(debt and is_breached(debt))
     # raw causal confidence (for provenance); the disposition decision rests on hard-gate + comparability.
     from app.services.recovery_signature import score_signature
     raw_conf = (score_signature(session, contract).alignment + 1.0) / 2.0
@@ -159,6 +162,15 @@ def assess_disposition(session: Session, incident: Incident) -> dict:
     elif ev.verdict == "violated":
         disposition = "FAILED"
         reasons.append(f"Contract violated: {', '.join(ev.violated_keys)}.")
+    elif debt_breached:
+        disposition = "ESCALATION_REQUIRED"
+        reasons.append("Recovery-debt waiver expired before the waived condition verified — escalate "
+                       "(a conditional recovery must never silently become a closure).")
+    elif debt is not None:
+        disposition = "CONDITIONAL"
+        reasons.append("Operating under a recovery-debt waiver: " + (debt.reason or "conditional recovery")
+                       + (f". Restrictions: {', '.join(debt.restrictions)}" if debt.restrictions else "")
+                       + f". Waiver expires {debt.expires_at.isoformat()}.")
     elif quality == "hold" and telemetry == "stable":
         disposition = "ESCALATION_REQUIRED"
         reasons.append("Telemetry is stable but quality placed a HOLD — conflicting signals; escalate.")
@@ -181,9 +193,9 @@ def assess_disposition(session: Session, incident: Incident) -> dict:
         reasons.append(f"Comparable conditions: {comparable.replace('_', ' ').lower()}"
                        + (f" (shifted: {', '.join(confounders)})" if confounders else "") + ".")
 
-    # can_close = the canonical policy result, NOT the raw evaluator verdict: a NOT_COMPARABLE/UNKNOWN
-    # recovery can never represent a closeable verified recovery (rule ccr-1.0).
-    can_close = bool(policy and policy.policy_result == "VERIFIED")
+    # can_close requires the disposition itself to be VERIFIED — so an active/breached recovery debt
+    # (CONDITIONAL / ESCALATION_REQUIRED) and a NOT_COMPARABLE/UNKNOWN ceiling both keep it un-closeable.
+    can_close = disposition == "VERIFIED"
     provenance = (policy.as_provenance() if policy
                   else {"comparability_classification": comparable, "policy_result": "IN_PROGRESS",
                         "rule_version": RULE_VERSION})
@@ -211,6 +223,10 @@ def assess_disposition(session: Session, incident: Incident) -> dict:
                           "key_shifts": comp.get("key_shifts", 0),
                           "confounding_dimensions": confounders},
         "policy_provenance": provenance,
+        "recovery_debt": ({"debt_id": debt.id, "active": not debt_breached, "breached": debt_breached,
+                           "expires_at": debt.expires_at.isoformat(),
+                           "restrictions": debt.restrictions,
+                           "waived": debt.waived_condition_keys} if debt is not None else None),
         "stable_cycles": ev.stable_streak,
         "required_stable_cycles": ev.required_stable_cycles,
         "basis": ("Advisory & read-only. The deterministic evaluator owns the hard closure gate; this composes "

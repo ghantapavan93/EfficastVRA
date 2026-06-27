@@ -45,6 +45,7 @@ from app.services import metrics, quality
 from app.services.evaluator import evaluate
 from app.services.evidence import validate_item
 from app.tools.schemas import (
+    GrantRecoveryDebtInput,
     IncidentInput,
     InterventionInput,
     KnowledgeInput,
@@ -356,6 +357,56 @@ def _h_create_knowledge(ctx: ToolContext) -> ToolOutput:
     return ToolOutput(data={"status": kc.status.value, "title": kc.title}, source="workflow", ref=kc.id)
 
 
+def _policy_grant_debt(ctx: ToolContext) -> tuple[bool, str]:
+    """A recovery debt may only be granted on an in-flight incident, with no active debt already, waiving
+    conditions that exist and are *waivable* (never a relapse / quality / safety)."""
+    from app.services.recovery_debt import active_debt, validate_waivable
+
+    inp = ctx.input
+    incident = ctx.session.get(Incident, inp.incident_id)
+    if incident is None or incident.current_contract_id is None:
+        return False, "no active contract for this incident"
+    if incident.state in (WorkflowState.VERIFIED_RECOVERY, WorkflowState.ESCALATED, WorkflowState.CANCELLED):
+        return False, f"cannot grant a recovery debt on a {incident.state.value} incident"
+    if active_debt(ctx.session, incident) is not None:
+        return False, "an active recovery debt already exists for this incident"
+    contract = ctx.session.get(RecoveryContract, incident.current_contract_id)
+    problems = validate_waivable(ctx.session, contract, inp.waived_condition_keys)
+    if problems:
+        return False, "; ".join(f"{p['key']}: {p['reason']}" for p in problems)
+    return True, "waiver permitted"
+
+
+def _h_grant_recovery_debt(ctx: ToolContext) -> ToolOutput:
+    from app.domain.enums import RecoveryDebtStatus
+    from app.domain.models import RecoveryDebt
+
+    inp = ctx.input
+    incident = ctx.session.get(Incident, inp.incident_id)
+    contract = ctx.session.get(RecoveryContract, incident.current_contract_id)
+    debt = RecoveryDebt(
+        tenant_id=ctx.principal.tenant_id, plant_id=ctx.principal.plant_id,
+        incident_id=incident.id, contract_id=contract.id, status=RecoveryDebtStatus.ACTIVE,
+        waived_condition_keys=inp.waived_condition_keys, reason=inp.reason,
+        restrictions=inp.restrictions, monitoring_requirement=inp.monitoring_requirement,
+        follow_up=inp.follow_up, granted_by=ctx.principal.username, granted_role=ctx.principal.role,
+        granted_at=utcnow(), expires_at=utcnow() + timedelta(minutes=inp.expires_in_minutes),
+    )
+    ctx.session.add(debt)
+    record_audit(ctx.session, type=AuditEventType.RECOVERY_DEBT_GRANTED, correlation_id=ctx.correlation_id,
+                 actor=ctx.principal.username, role=ctx.principal.role,
+                 summary=(f"Recovery debt granted — conditional operation waiving "
+                          f"{', '.join(inp.waived_condition_keys)} for {inp.expires_in_minutes} min."),
+                 incident_id=incident.id, contract_id=contract.id,
+                 detail={"debt_id": debt.id, "waived": inp.waived_condition_keys,
+                         "restrictions": inp.restrictions, "expires_in_minutes": inp.expires_in_minutes,
+                         "monitoring": inp.monitoring_requirement, "follow_up": inp.follow_up,
+                         "reason": inp.reason})
+    ctx.session.flush()
+    return ToolOutput(data={"debt_id": debt.id, "status": debt.status.value,
+                            "expires_at": debt.expires_at.isoformat()}, source="workflow", ref=debt.id)
+
+
 # ── Registry ─────────────────────────────────────────────────────────────────
 def _spec(name, action_class, roles, in_model, is_write, handler, summary, *, policy=None,
           requires_human=False) -> ToolSpec:
@@ -384,6 +435,7 @@ REGISTRY: dict[str, ToolSpec] = {
     "publish_recovery_decision": _spec("publish_recovery_decision", _A, ALL_ROLES | {Role.AGENT}, PublishDecisionInput, True, _h_publish_decision, "Publish a recovery decision event."),
     "reopen_incident": _spec("reopen_incident", _A, ALL_ROLES | {Role.AGENT}, ReopenInput, True, _h_reopen_incident, "Reopen + activate contingency (only when violated).", policy=_policy_reopen),
     "create_knowledge_candidate": _spec("create_knowledge_candidate", _A, ALL_ROLES | {Role.AGENT}, KnowledgeInput, True, _h_create_knowledge, "Create a PENDING-review knowledge candidate."),
+    "grant_recovery_debt": _spec("grant_recovery_debt", _P, frozenset({Role.SUPERVISOR, Role.QUALITY_ENGINEER, Role.PLANT_ADMIN}), GrantRecoveryDebtInput, True, _h_grant_recovery_debt, "Grant a time-boxed conditional-recovery waiver (concession).", policy=_policy_grant_debt, requires_human=True),
 }
 
 

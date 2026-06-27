@@ -23,7 +23,7 @@ git history and `docs/`.)
   consume + publish‑verdict‑back; auth "to be agreed"); consumption seam.
 - **Futuristic frontend pass** + M7 live/stale/offline connection indicator.
 
-**Baseline:** backend **159 pytest** passing · frontend **24 vitest** passing · typecheck/lint/build clean.
+**Baseline:** backend **165 pytest** passing · frontend **24 vitest** passing · typecheck/lint/build clean.
 
 **Phase 36 — Recovery Assurance R&D (in progress).** Four web-grounded research tracks (novelty/category,
 causal-consistency model, contract DSL+FSM, evaluation/data/verdict) → [`CAUSAL_RECOVERY_RESEARCH.md`](CAUSAL_RECOVERY_RESEARCH.md)
@@ -108,6 +108,23 @@ stays FAILED, missing quality/stale still block, no surface shows VERIFIED when 
 blocked unless comparable. Docs hardened with citations + confidence legend (COMPETITOR_AUDIT /
 CATEGORY_DEFINITION / NOVELTY_CLAIMS). Next (research-prioritized): upgrade gate internals to SMD/CUSUM;
 **Recovery Debt / Conditional** (separate phase); per-cycle context emission.
+
+**43 shipped — Recovery Debt (the CONDITIONAL outcome, made real).** A persisted, time-boxed *concession /
+deviation permit* (`domain/models.py::RecoveryDebt`, `RecoveryDebtStatus`): production may continue under
+explicit restrictions while a **waivable** condition is deferred, so a CONDITIONAL recovery can never
+silently become a permanent closure. **Granted only by an authorised human through the Agent Action
+Gateway** (`grant_recovery_debt`, ActionClass.APPROVAL_REQUIRED, `requires_human`, roles supervisor/quality/
+plant-admin) with a policy gate that **never lets a relapse (NOT_RECUR), a quality condition, or anything
+safety-bearing be waived** (`services/recovery_debt.py::unwaivable_reason`). Lifecycle: ACTIVE → **SETTLED**
+(the waived condition later verifies, deterministic) or **BREACHED** at expiry → **auto-escalation** (state
+→ ESCALATED). Disposition integration: an active waiver ⇒ **CONDITIONAL** (`can_close` False); a breached
+waiver ⇒ ESCALATION_REQUIRED. Routes `/recovery-debt` (GET) + `/grant` (gateway) + `/settle` + `/sweep`;
+audit types RECOVERY_DEBT_GRANTED/SETTLED/BREACHED. UI: `components/mission/recovery-debt-panel.tsx` (view +
+role-gated grant form + settle) — verified live (ACTIVE waiver on a monitoring incident → CONDITIONAL, 0
+console errors). Tests: `test_recovery_debt.py` (6 — gateway role/human gate, non-waivable denial, settle,
+breach→escalate, active-debt-blocks-VERIFIED). Frozen architecture intact (every write through the gateway;
+deterministic evaluator still owns the hard verdict). Next: upgrade comparability internals to SMD/CUSUM;
+per-cycle operating-context emission; A2 profile-driven reopen/contingency.
 
 **Deployment readiness (Render + Vercel + Neon, all free):** the repo deploys by *configuration, not code*
 — `main.py` lifespan creates tables + seeds on first boot; `/health` exists; `db.py` normalizes a

@@ -88,3 +88,29 @@ class ReopenInput(BaseModel):
 
 class KnowledgeInput(BaseModel):
     incident_id: str
+
+
+class GrantRecoveryDebtInput(BaseModel):
+    """Grant a time-boxed conditional-recovery waiver. APPROVAL_REQUIRED — an authorised human only."""
+    incident_id: str
+    waived_condition_keys: list[str]          # the (waivable) recovery condition(s) being deferred
+    reason: str
+    restrictions: list[str] = Field(default_factory=list)   # operating limits for the conditional period
+    expires_in_minutes: int = 90              # the waiver is valid only for this long
+    monitoring_requirement: str = ""          # extra monitoring while operating on debt
+    follow_up: str = ""                       # the action that must close the debt
+
+    @field_validator("waived_condition_keys")
+    @classmethod
+    def _at_least_one(cls, v: list[str]) -> list[str]:
+        if not v:
+            raise ValueError("a recovery debt must waive at least one condition")
+        return v
+
+    @field_validator("expires_in_minutes")
+    @classmethod
+    def _bounded_expiry(cls, v: int) -> int:
+        # a waiver is a SHORT exception, never indefinite — bound it (1 minute … 24 hours)
+        if not (1 <= v <= 24 * 60):
+            raise ValueError("expires_in_minutes must be between 1 and 1440 (24h)")
+        return v

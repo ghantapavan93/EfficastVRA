@@ -178,6 +178,14 @@ class LotDisposition(str, Enum):
     SCRAPPED = "SCRAPPED"
 
 
+class RecoveryDebtStatus(str, Enum):
+    """Lifecycle of a Recovery Debt (a time-boxed conditional-recovery waiver / concession)."""
+    ACTIVE = "ACTIVE"        # operating under restrictions; the waived condition is not yet met
+    SETTLED = "SETTLED"      # the waived condition was later verified — the debt is paid back
+    BREACHED = "BREACHED"    # expiry passed without settlement → auto-escalation
+    CANCELLED = "CANCELLED"  # withdrawn by an authorised human before expiry
+
+
 class AuditEventType(str, Enum):
     STATE_TRANSITION = "STATE_TRANSITION"
     ACTION_PROPOSED = "ACTION_PROPOSED"
@@ -198,6 +206,9 @@ class AuditEventType(str, Enum):
     ESCALATED = "ESCALATED"
     RECOVERY_VERIFIED = "RECOVERY_VERIFIED"
     RECOVERY_INSUFFICIENT = "RECOVERY_INSUFFICIENT"  # closure blocked by the comparable-conditions ceiling
+    RECOVERY_DEBT_GRANTED = "RECOVERY_DEBT_GRANTED"      # conditional operation authorised under a waiver
+    RECOVERY_DEBT_SETTLED = "RECOVERY_DEBT_SETTLED"      # waived condition later verified
+    RECOVERY_DEBT_BREACHED = "RECOVERY_DEBT_BREACHED"    # waiver expired unsettled → escalated
     NOTIFICATION_SENT = "NOTIFICATION_SENT"
     KNOWLEDGE_CANDIDATE_CREATED = "KNOWLEDGE_CANDIDATE_CREATED"
     KNOWLEDGE_REVIEWED = "KNOWLEDGE_REVIEWED"

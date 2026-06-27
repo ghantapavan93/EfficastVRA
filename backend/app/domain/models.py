@@ -37,6 +37,7 @@ from app.domain.enums import (
     KnowledgeStatus,
     LotDisposition,
     MachineState,
+    RecoveryDebtStatus,
     OutcomeType,
     Role,
     Severity,
@@ -526,6 +527,34 @@ class RecoveryObservation(Base, table=True):
     source: str = "SyntheticEfficastPort"
     freshness_s: int = 0
     raw: dict = Field(default_factory=dict, sa_type=JSON)
+
+
+class RecoveryDebt(Base, table=True):
+    """A time-boxed *conditional recovery* — a concession / deviation permit. Production may continue under
+    explicit restrictions while a specific (waivable) recovery condition is not yet met. It is tracked so a
+    CONDITIONAL recovery can never silently become a permanent closure: it must be SETTLED (the waived
+    condition later verifies) or it BREACHES at expiry and auto-escalates. Granted only by an authorised
+    human through the Agent Action Gateway (APPROVAL_REQUIRED). It can never waive a relapse (fault
+    non-recurrence), a quality condition, or anything safety-bearing — see services/recovery_debt.py."""
+
+    id: str = Field(default_factory=id_factory("DEBT"), primary_key=True)
+    tenant_id: str = Field(index=True)
+    plant_id: str = Field(index=True)
+    incident_id: str = Field(foreign_key="incident.id", index=True)
+    contract_id: str = Field(index=True)
+    status: RecoveryDebtStatus = Field(default=RecoveryDebtStatus.ACTIVE, index=True)
+    waived_condition_keys: list = Field(default_factory=list, sa_type=JSON)
+    reason: str = ""
+    restrictions: list = Field(default_factory=list, sa_type=JSON)   # e.g. ["line speed <= 70%"]
+    monitoring_requirement: str = ""                                 # e.g. "thermal inspection every 20 min"
+    follow_up: str = ""
+    granted_by: str = ""
+    granted_role: Optional[Role] = None
+    granted_at: datetime = Field(default_factory=utcnow)
+    expires_at: datetime
+    settled_at: Optional[datetime] = None
+    settled_by: str = ""
+    resolution_note: str = ""
 
 
 # ─────────────────────────────────────────────────────────────────────────────

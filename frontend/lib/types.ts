@@ -619,6 +619,28 @@ export interface ComparabilityView {
   basis?: string;
 }
 
+export interface RecoveryDebtView {
+  available: boolean;
+  incident_id: string;
+  debt_id?: string;
+  status?: string; // ACTIVE | SETTLED | BREACHED | CANCELLED
+  active?: boolean;
+  waived?: { key: string; label: string }[];
+  reason?: string; // the waiver reason when available; the "no debt" message when not
+  restrictions?: string[];
+  monitoring_requirement?: string;
+  follow_up?: string;
+  granted_by?: string;
+  granted_role?: string | null;
+  granted_at?: string;
+  expires_at?: string;
+  minutes_remaining?: number;
+  settled_at?: string | null;
+  settled_by?: string | null;
+  resolution_note?: string | null;
+  basis?: string;
+}
+
 export interface DispInvariant { key: string; label: string; ok: boolean; detail: string }
 
 export interface DispositionView {

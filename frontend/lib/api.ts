@@ -18,6 +18,7 @@ import type {
   NotificationsView,
   OutcomeView,
   ProvenanceView,
+  RecoveryDebtView,
   ReasoningView,
   ReliabilityView,
   SensitivityView,
@@ -107,6 +108,16 @@ export const api = {
   closureRisk: (id: string) => req<ClosureRiskView>(`/api/incidents/${id}/closure-risk`),
   disposition: (id: string) => req<DispositionView>(`/api/incidents/${id}/disposition`),
   comparability: (id: string) => req<ComparabilityView>(`/api/incidents/${id}/comparability`),
+  recoveryDebt: (id: string) => req<RecoveryDebtView>(`/api/incidents/${id}/recovery-debt`),
+  grantRecoveryDebt: (id: string, body: {
+    waived_condition_keys: string[];
+    reason: string;
+    restrictions?: string[];
+    expires_in_minutes?: number;
+    monitoring_requirement?: string;
+    follow_up?: string;
+  }) => post(`/api/incidents/${id}/recovery-debt/grant`, body),
+  settleRecoveryDebt: (id: string) => post(`/api/incidents/${id}/recovery-debt/settle`),
   decision: (id: string) => req<DecisionView>(`/api/incidents/${id}/decision`),
   reliability: (id: string) => req<ReliabilityView>(`/api/incidents/${id}/reliability`),
   provenance: (id: string) => req<ProvenanceView>(`/api/incidents/${id}/provenance`),
