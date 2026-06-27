@@ -1,0 +1,20 @@
+{
+  "contract_version": "0.1",
+  "envelope": "envelope.schema.json",
+  "events": [
+    "approval",
+    "asset_context",
+    "intervention",
+    "lot_trace",
+    "machine_event",
+    "operator_observation",
+    "planner_impact",
+    "production_cycle",
+    "production_order_context",
+    "quality_check",
+    "recovery_decision_publication",
+    "sensor_health",
+    "telemetry_observation",
+    "work_order"
+  ]
+}

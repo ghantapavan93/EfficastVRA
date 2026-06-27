@@ -23,7 +23,7 @@ git history and `docs/`.)
   consume + publish‑verdict‑back; auth "to be agreed"); consumption seam.
 - **Futuristic frontend pass** + M7 live/stale/offline connection indicator.
 
-**Baseline:** backend **165 pytest** passing · frontend **24 vitest** passing · typecheck/lint/build clean.
+**Baseline:** backend **181 pytest** passing · frontend **24 vitest** passing · typecheck/lint/build clean.
 
 **Phase 36 — Recovery Assurance R&D (in progress).** Four web-grounded research tracks (novelty/category,
 causal-consistency model, contract DSL+FSM, evaluation/data/verdict) → [`CAUSAL_RECOVERY_RESEARCH.md`](CAUSAL_RECOVERY_RESEARCH.md)
@@ -125,6 +125,25 @@ console errors). Tests: `test_recovery_debt.py` (6 — gateway role/human gate, 
 breach→escalate, active-debt-blocks-VERIFIED). Frozen architecture intact (every write through the gateway;
 deterministic evaluator still owns the hard verdict). Next: upgrade comparability internals to SMD/CUSUM;
 per-cycle operating-context emission; A2 profile-driven reopen/contingency.
+
+**44 shipped — Efficast integration readiness, contract v0.1 (42a+42b of the user's "Phase 42").**
+Integration-*ready*, not integrated — assumes NO Efficast API/DB/cloud/customer-data. New additive package
+`app/integration/efficast/` (sits beside the existing `EfficastPort`; composition root + tests untouched):
+**(1) Data contract** `contract.py` — a versioned envelope (source_system/schema_version/mapping_version/
+tenant/plant/source_id/correlation_id/idempotency_key/source+ingestion timestamps/timezone/data_quality) +
+14 event models with a `Literal` discriminator; JSON Schema generated to `schemas/efficast-recovery-v0.1/`
+(`export_schemas.py`). **(2) Boundary** `recovery_port.py::EfficastRecoveryPort` — read + *proposal* methods
+only, **no machine control by construction**. **(3) Adapters** Synthetic (canned F27 as events) / Replay
+(sanitised JSONL bundle) / Sandbox (interface+config stub that raises until a real endpoint is agreed).
+**(4) Reconciliation** `reconciliation.py` — dedup/out-of-order/late/clock-drift/unit/mapping-version/
+partial/missing-mapping (read-side complement to the existing idempotency+outbox+audit). **(5) Shadow mode**
+`shadow.py` — reconcile → evaluate with the REAL cores (`score_observations`, `classify_context`) → propose
+disposition → compare to the bundle's actual outcome → **zero writes (structural: no session, no port
+writes)**. Docs: EFFICAST_INTEGRATION_ARCHITECTURE / RECOVERY_DATA_CONTRACT / OPEN_QUESTIONS / REAL_DATA_
+PILOT_PLAN. Tests: `test_efficast_reconciliation.py` (9) + `test_efficast_shadow.py` (7) — replay→verified,
+cycle-17→failed, untrusted-sensor→insufficient, duplicate-webhook, sandbox-not-wired, no-write guarantee.
+**Deferred to 42c/42d:** Sensor Trust Gate (derive TRUSTED/DEGRADED/UNTRUSTED/UNKNOWN), Lot-at-Risk
+analysis, outbound MAIA contract, role-specific stakeholder views.
 
 **Deployment readiness (Render + Vercel + Neon, all free):** the repo deploys by *configuration, not code*
 — `main.py` lifespan creates tables + seeds on first boot; `/health` exists; `db.py` normalizes a

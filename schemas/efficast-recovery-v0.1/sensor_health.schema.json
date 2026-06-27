@@ -1,0 +1,133 @@
+{
+  "$defs": {
+    "DataQuality": {
+      "enum": [
+        "OK",
+        "SUSPECT",
+        "MISSING",
+        "STALE"
+      ],
+      "title": "DataQuality",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "source_system": {
+      "title": "Source System",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": "0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "mapping_version": {
+      "default": "0.1",
+      "title": "Mapping Version",
+      "type": "string"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "plant_id": {
+      "title": "Plant Id",
+      "type": "string"
+    },
+    "source_id": {
+      "title": "Source Id",
+      "type": "string"
+    },
+    "correlation_id": {
+      "title": "Correlation Id",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "source_timestamp": {
+      "format": "date-time",
+      "title": "Source Timestamp",
+      "type": "string"
+    },
+    "ingestion_timestamp": {
+      "format": "date-time",
+      "title": "Ingestion Timestamp",
+      "type": "string"
+    },
+    "timezone": {
+      "default": "UTC",
+      "title": "Timezone",
+      "type": "string"
+    },
+    "data_quality": {
+      "$ref": "#/$defs/DataQuality",
+      "default": "OK"
+    },
+    "event_type": {
+      "const": "sensor_health",
+      "default": "sensor_health",
+      "title": "Event Type",
+      "type": "string"
+    },
+    "sensor_id": {
+      "title": "Sensor Id",
+      "type": "string"
+    },
+    "machine_id": {
+      "default": "",
+      "title": "Machine Id",
+      "type": "string"
+    },
+    "metric": {
+      "default": "",
+      "title": "Metric",
+      "type": "string"
+    },
+    "status": {
+      "default": "unknown",
+      "title": "Status",
+      "type": "string"
+    },
+    "calibration_due": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Calibration Due"
+    },
+    "last_sample_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Sample At"
+    }
+  },
+  "required": [
+    "source_system",
+    "tenant_id",
+    "plant_id",
+    "source_id",
+    "correlation_id",
+    "idempotency_key",
+    "source_timestamp",
+    "ingestion_timestamp",
+    "sensor_id"
+  ],
+  "title": "SensorHealth",
+  "type": "object"
+}

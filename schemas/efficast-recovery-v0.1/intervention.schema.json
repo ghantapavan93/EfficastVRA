@@ -1,0 +1,125 @@
+{
+  "$defs": {
+    "DataQuality": {
+      "enum": [
+        "OK",
+        "SUSPECT",
+        "MISSING",
+        "STALE"
+      ],
+      "title": "DataQuality",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "source_system": {
+      "title": "Source System",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": "0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "mapping_version": {
+      "default": "0.1",
+      "title": "Mapping Version",
+      "type": "string"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "plant_id": {
+      "title": "Plant Id",
+      "type": "string"
+    },
+    "source_id": {
+      "title": "Source Id",
+      "type": "string"
+    },
+    "correlation_id": {
+      "title": "Correlation Id",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "source_timestamp": {
+      "format": "date-time",
+      "title": "Source Timestamp",
+      "type": "string"
+    },
+    "ingestion_timestamp": {
+      "format": "date-time",
+      "title": "Ingestion Timestamp",
+      "type": "string"
+    },
+    "timezone": {
+      "default": "UTC",
+      "title": "Timezone",
+      "type": "string"
+    },
+    "data_quality": {
+      "$ref": "#/$defs/DataQuality",
+      "default": "OK"
+    },
+    "event_type": {
+      "const": "intervention",
+      "default": "intervention",
+      "title": "Event Type",
+      "type": "string"
+    },
+    "intervention_id": {
+      "title": "Intervention Id",
+      "type": "string"
+    },
+    "work_order_id": {
+      "default": "",
+      "title": "Work Order Id",
+      "type": "string"
+    },
+    "kind": {
+      "default": "",
+      "title": "Kind",
+      "type": "string"
+    },
+    "component": {
+      "default": "",
+      "title": "Component",
+      "type": "string"
+    },
+    "status": {
+      "default": "",
+      "title": "Status",
+      "type": "string"
+    },
+    "completed_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Completed At"
+    }
+  },
+  "required": [
+    "source_system",
+    "tenant_id",
+    "plant_id",
+    "source_id",
+    "correlation_id",
+    "idempotency_key",
+    "source_timestamp",
+    "ingestion_timestamp",
+    "intervention_id"
+  ],
+  "title": "Intervention",
+  "type": "object"
+}
