@@ -23,7 +23,41 @@ git history and `docs/`.)
   consume + publish‑verdict‑back; auth "to be agreed"); consumption seam.
 - **Futuristic frontend pass** + M7 live/stale/offline connection indicator.
 
-**Baseline:** backend **119 pytest** passing · frontend **24 vitest** passing · typecheck/lint/build clean.
+**Baseline:** backend **134 pytest** passing · frontend **24 vitest** passing · typecheck/lint/build clean.
+
+**Phase 36 — Recovery Assurance R&D (in progress).** Four web-grounded research tracks (novelty/category,
+causal-consistency model, contract DSL+FSM, evaluation/data/verdict) → [`CAUSAL_RECOVERY_RESEARCH.md`](CAUSAL_RECOVERY_RESEARCH.md)
+(verdict: **GO, conditional**; rename Fingerprint→**Expected Recovery Signature**; drop "causal" from the
+headline until matched-conditions exists; moat winners = False-Closure Risk Score + Intervention
+Effectiveness). **36a shipped:** `services/recovery_signature.py` `score_signature()` — an advisory,
+read-only intervention-consistency layer whose Expected Recovery Signature is *derived from the contract's
+own conditions* (machine-agnostic) and which scores the hero's two headline-identical windows **oppositely**
+(coupling → RECOVERY_OBSERVED; bearing → STRONGLY_CONSISTENT, conditions-unverified). Tests:
+`test_recovery_signature.py` (6). **36b shipped:** read-only `/api/incidents/{id}/signature` route +
+`signature_view` serializer + a **Recovery Signature** mission tab/card (`recovery-signature-panel.tsx`)
+showing the rung, alignment, per-signal expected-vs-actual bars, and the honesty caps — verified live in the
+browser (Strongly consistent · +1.00 on the hero). **36c shipped:** a deterministic Monte-Carlo
+**calibration harness** (`services/calibration.py`) — refactored the scorer to a pure `score_observations`
+core (graded precursor) reused by the harness, generates seeded genuine-vs-latent-relapse scenarios, and
+reports **Brier (+ decomposition), ROC-AUC, reliability curve, early-warning rate** (read-only route
+`/api/calibration`). Surfaced as an **award-grade animated reliability-diagram card** on /system
+(`components/system/calibration-panel.tsx`) — verified live (Brier ≈0.14, AUC ≈0.99, honest mid-range
+over-confidence shown). Tests: `test_calibration.py` (3). **36d shipped — the third primitive, Recovery
+Certificate:** `services/certificate.py` composes (read-only) the deterministic verdict + closure
+provenance + intervention-consistency signature + a tamper-evident audit-seal hash into an exportable
+**Return-to-Service Certificate** (route `/api/incidents/{id}/certificate`), surfaced as an award-grade,
+**printable** mission tab (`components/outcome/recovery-certificate.tsx`: embossed seal, conditions
+checklist, trust-weighted evidence, human signatures, audit/cert hashes, print-isolation CSS) — verified
+live (Certified · trustworthy · alignment 1.00 on the hero). Completes the trio **Contract → Signature →
+Certificate**. Tests: `test_certificate.py` (3). **39 shipped — False-Closure Risk Score (moat #1):**
+`services/false_closure_risk.py` — an explainable, advisory, read-only estimate of the risk that closing
+*now* would be a false closure, composed from the intervention-consistency signature + relapse precursor +
+stable-cycle margin + weakest validated evidence (each factor's contribution shown; a recurring fault forces
+high). Route `/api/incidents/{id}/closure-risk`; surfaced as an animated **radial risk gauge** with
+per-factor bars (`components/mission/closure-risk-panel.tsx`) — verified live (6% · Low on the verified
+hero). Tests: `test_false_closure_risk.py` (3). The full advisory vertical is now live: Contract →
+Signature → Calibration → Certificate → Closure-Risk. Next: 37 generative-physics data + fleet; 38
+adversarial golden suite.
 
 **Deployment readiness (Render + Vercel + Neon, all free):** the repo deploys by *configuration, not code*
 — `main.py` lifespan creates tables + seeds on first boot; `/health` exists; `db.py` normalizes a

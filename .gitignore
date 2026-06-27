@@ -40,3 +40,7 @@ Thumbs.db
 /backend/.objectstore/
 /storage/
 /var/
+
+# Stray screenshots / photos dropped at the repo root (not project content)
+/*.jpg
+/*.jpeg

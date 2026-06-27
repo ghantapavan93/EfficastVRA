@@ -524,6 +524,97 @@ export interface ForecastView {
   basis?: string;
 }
 
+export interface SignatureSignal {
+  signal: string;
+  direction: string;
+  op: string;
+  fault_code?: string | null;
+  respond_by_cycle?: number | null;
+  weight: number;
+  agreement?: number | null;
+  derived_precursor?: boolean;
+}
+
+export interface SignatureView {
+  available: boolean;
+  incident_id: string;
+  rung?: string;
+  alignment?: number;
+  signals?: SignatureSignal[];
+  caveats?: string[];
+  conditions_matched?: string;
+  observed_cycles?: number;
+  basis?: string;
+}
+
+export interface CertCondition { key: string; kind: string; op: string; status: string; label: string }
+export interface CertApproval {
+  decided_by: string;
+  decided_role: string;
+  decision: string;
+  reason?: string;
+  at?: string | null;
+}
+export interface CertIntervention { sequence: number; kind: string; title: string; status: string }
+
+export interface CertificateView {
+  available: boolean;
+  incident_id: string;
+  certificate_id?: string;
+  status?: string; // certified | reopened | pending
+  verdict?: string;
+  issued_at?: string;
+  issuer?: string;
+  subject?: {
+    machine?: string;
+    machine_code?: string | null;
+    machine_model?: string | null;
+    plant_id?: string;
+    order_id?: string | null;
+    fault_code?: string | null;
+    contract_no?: string;
+    contract_version?: number;
+  };
+  conditions?: CertCondition[];
+  violated_conditions?: string[];
+  evidence_summary?: { count: number; mean_trust: number | null; min_trust: number | null };
+  approvals?: CertApproval[];
+  interventions?: CertIntervention[];
+  stable_cycles?: number;
+  required_stable_cycles?: number;
+  reopened_count?: number;
+  signature?: { rung: string; alignment: number; conditions_matched: string };
+  audit?: { intact: boolean; entries: number | null; head_hash: string };
+  certificate_hash?: string;
+  trustworthy?: boolean;
+  summary?: string;
+  basis?: string;
+}
+
+export interface FcrsFactor {
+  key: string;
+  label: string;
+  weight: number;
+  value: number;
+  contribution: number;
+  detail?: string;
+}
+
+export interface ClosureRiskView {
+  available: boolean;
+  incident_id: string;
+  risk?: number;
+  risk_pct?: number;
+  band?: string; // low | elevated | high
+  recommendation?: string;
+  dominant_driver?: string | null;
+  fault_in_window?: boolean;
+  quality_released?: boolean;
+  factors?: FcrsFactor[];
+  basis?: string;
+  reason?: string;
+}
+
 export interface MaiaAlert {
   id: string;
   source: string;

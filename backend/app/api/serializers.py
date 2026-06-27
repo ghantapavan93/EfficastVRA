@@ -407,6 +407,22 @@ def forecast_view(session: Session, incident: Incident) -> dict:
     return {"incident_id": incident.id, **dataclasses.asdict(_forecast(session, contract))}
 
 
+def signature_view(session: Session, incident: Incident) -> dict:
+    """Expected Recovery Signature — advisory intervention-consistency: did the line recover the way THIS
+    intervention should have caused it to? Read-only; never the closure verdict."""
+    import dataclasses
+
+    from app.services.recovery_signature import score_signature
+
+    if not incident.current_contract_id:
+        return {"available": False, "incident_id": incident.id}
+    contract = session.get(RecoveryContract, incident.current_contract_id)
+    if contract is None:
+        return {"available": False, "incident_id": incident.id}
+    return {"available": True, "incident_id": incident.id,
+            **dataclasses.asdict(score_signature(session, contract))}
+
+
 def notification_view(n) -> dict:
     return {
         "id": n.id, "incident_id": n.incident_id, "to_role": n.to_role.value,

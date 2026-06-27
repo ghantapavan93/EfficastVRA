@@ -187,6 +187,15 @@ def forecast(incident_id: str, session: Session = Depends(get_session)) -> dict:
     return S.forecast_view(session, inc)
 
 
+@router.get("/incidents/{incident_id}/signature")
+def signature(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """Expected Recovery Signature — advisory intervention-consistency: did the line recover the way THIS
+    intervention should have caused it to (vs. temporary suppression / changed conditions / noise)? The
+    expected signature is derived from the contract's own conditions. Read-only; never changes the verdict."""
+    inc = _incident(session, incident_id)
+    return S.signature_view(session, inc)
+
+
 @router.get("/incidents/{incident_id}/decision")
 def decision(incident_id: str, session: Session = Depends(get_session)) -> dict:
     """Decision Intelligence — risk-adjusted cost/impact, recommended option, and an FMEA (advisory)."""
@@ -218,6 +227,27 @@ def provenance(incident_id: str, session: Session = Depends(get_session)) -> dic
     return closure_provenance(session, inc)
 
 
+@router.get("/incidents/{incident_id}/certificate")
+def certificate(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """Return-to-Service (Recovery) Certificate — the exportable proof of recovery: verdict, conditions,
+    trust-weighted evidence, human signatures, intervention-consistency, and the tamper-evident audit seal.
+    Read-only; composed from the deterministic verdict + provenance (never the LLM)."""
+    from app.services.certificate import build_certificate
+
+    inc = _incident(session, incident_id)
+    return build_certificate(session, inc)
+
+
+@router.get("/incidents/{incident_id}/closure-risk")
+def closure_risk(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """False-Closure Risk Score — an explainable, advisory estimate of how likely closing *now* would be a
+    false closure, with each contributing factor. Read-only; never gates closure (the evaluator owns it)."""
+    from app.services.false_closure_risk import assess_false_closure_risk
+
+    inc = _incident(session, incident_id)
+    return assess_false_closure_risk(session, inc)
+
+
 @router.get("/incidents/{incident_id}/sensitivity")
 def sensitivity(incident_id: str, session: Session = Depends(get_session)) -> dict:
     """Counterfactual contract calibration — replays the deterministic verifier over the real trajectory
@@ -227,6 +257,16 @@ def sensitivity(incident_id: str, session: Session = Depends(get_session)) -> di
 
     inc = _incident(session, incident_id)
     return analyze(session, inc)
+
+
+@router.get("/calibration")
+def calibration(trials: int = 400) -> dict:
+    """Calibration harness for the Expected Recovery Signature — Brier / reliability curve / ROC-AUC over
+    seeded synthetic scenarios. Read-only, advisory, reproducible. Makes the advisory layer falsifiable
+    (synthetic PROTOTYPE_ASSUMPTION — measures the signature's internal skill, not real plant recovery)."""
+    from app.services.calibration import run_calibration
+
+    return run_calibration(trials=min(max(trials, 100), 2000))
 
 
 # ── front of the loop: MAIA alerts + agent diagnosis ──────────────────────────

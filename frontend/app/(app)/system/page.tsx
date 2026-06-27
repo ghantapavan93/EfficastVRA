@@ -5,6 +5,7 @@ import { Activity, Database, ShieldCheck } from "lucide-react";
 import { useMe } from "@/lib/hooks";
 import { Badge, SectionLabel } from "@/components/forge/primitives";
 import { LoadingState } from "@/components/forge/states";
+import { CalibrationPanel } from "@/components/system/calibration-panel";
 
 function useHealth() {
   return useQuery({
@@ -165,6 +166,8 @@ export default function SystemPage() {
           </div>
         </section>
       )}
+
+      <CalibrationPanel />
 
       {gov && (
         <section className="mt-4 rounded-xl border border-line bg-surface-1 p-4">

@@ -72,6 +72,33 @@ export function useForecast(id: string, refetchInterval?: number) {
   });
 }
 
+export function useSignature(id: string, refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({
+    queryKey: ["signature", id, username],
+    queryFn: () => api.signature(id),
+    refetchInterval,
+  });
+}
+
+export function useCertificate(id: string, refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({
+    queryKey: ["certificate", id, username],
+    queryFn: () => api.certificate(id),
+    refetchInterval,
+  });
+}
+
+export function useClosureRisk(id: string, refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({
+    queryKey: ["closure-risk", id, username],
+    queryFn: () => api.closureRisk(id),
+    refetchInterval,
+  });
+}
+
 export function useDecision(id: string, refetchInterval?: number) {
   const { username } = useRole();
   return useQuery({
@@ -166,7 +193,7 @@ export function useTriageAlert() {
 export function useRecoveryActions(id: string) {
   const qc = useQueryClient();
   const invalidate = () => {
-    for (const key of ["missions", "mission", "contract", "evidence", "timeline", "outcome", "audit", "reasoning", "diagnosis", "alerts", "forecast", "decision", "reliability", "provenance", "sensitivity"]) {
+    for (const key of ["missions", "mission", "contract", "evidence", "timeline", "outcome", "audit", "reasoning", "diagnosis", "alerts", "forecast", "signature", "certificate", "closure-risk", "decision", "reliability", "provenance", "sensitivity"]) {
       qc.invalidateQueries({ queryKey: key === "missions" ? ["missions"] : [key, id] });
     }
   };

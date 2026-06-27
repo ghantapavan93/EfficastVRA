@@ -11,6 +11,8 @@ import { ActionBar } from "@/components/mission/action-bar";
 import { AgentReasoning } from "@/components/mission/agent-reasoning";
 import { DecisionPanel } from "@/components/mission/decision-panel";
 import { ReliabilityPanel } from "@/components/mission/reliability-panel";
+import { RecoverySignaturePanel } from "@/components/mission/recovery-signature-panel";
+import { ClosureRiskPanel } from "@/components/mission/closure-risk-panel";
 import { ProvenancePanel } from "@/components/mission/provenance-panel";
 import { DiagnosisPanel } from "@/components/mission/diagnosis-panel";
 import { ContingencyCompare } from "@/components/mission/contingency-compare";
@@ -18,6 +20,7 @@ import { MissionHeader } from "@/components/mission/mission-header";
 import { ContractPanel } from "@/components/contract/contract-panel";
 import { EvidenceQueue } from "@/components/evidence/evidence-queue";
 import { OutcomePanel } from "@/components/outcome/outcome-panel";
+import { RecoveryCertificate } from "@/components/outcome/recovery-certificate";
 import { VerificationTimeline } from "@/components/timeline/verification-timeline";
 
 export default function Page({ params }: { params: { id: string } }) {
@@ -46,12 +49,15 @@ function MissionDetail({ id }: { id: string }) {
     { key: "reasoning", label: "Agent Reasoning" },
     { key: "decision", label: "Decision Intelligence" },
     { key: "reliability", label: "Recovery Confidence" },
+    { key: "signature", label: "Recovery Signature" },
+    { key: "closure-risk", label: "Closure Risk" },
     { key: "contract", label: "Recovery Contract" },
     { key: "evidence", label: "Evidence" },
     { key: "timeline", label: "Verification Timeline" },
     ...(m.reopened_count > 0 ? [{ key: "contingency", label: "Contingency" }] : []),
     { key: "provenance", label: "Provenance" },
     { key: "outcome", label: "Outcome" },
+    { key: "certificate", label: "Certificate" },
   ];
 
   return (
@@ -90,12 +96,15 @@ function MissionDetail({ id }: { id: string }) {
         {tab === "reasoning" && <AgentReasoning incidentId={id} />}
         {tab === "decision" && <DecisionPanel incidentId={id} />}
         {tab === "reliability" && <ReliabilityPanel incidentId={id} />}
+        {tab === "signature" && <RecoverySignaturePanel incidentId={id} />}
+        {tab === "closure-risk" && <ClosureRiskPanel incidentId={id} />}
         {tab === "contract" && <ContractPanel incidentId={id} />}
         {tab === "evidence" && <EvidenceQueue incidentId={id} />}
         {tab === "timeline" && <VerificationTimeline incidentId={id} />}
         {tab === "contingency" && <ContingencyCompare incidentId={id} />}
         {tab === "provenance" && <ProvenancePanel incidentId={id} />}
         {tab === "outcome" && <OutcomePanel incidentId={id} />}
+        {tab === "certificate" && <RecoveryCertificate incidentId={id} />}
       </div>
     </div>
   );
