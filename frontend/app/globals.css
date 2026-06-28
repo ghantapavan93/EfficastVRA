@@ -182,12 +182,48 @@
     background-size: 400% 100%;
     animation: shimmer 1.6s linear infinite;
   }
+  /* Smooth entrance for tab/route content — every view rises in. */
+  .tab-in {
+    animation: tab-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  /* "Alive" panel treatment: a signal hairline on top + a hover lift. Reused across mission panels. */
+  .alive {
+    position: relative;
+    transition: transform var(--t-standard) cubic-bezier(0.22, 1, 0.36, 1), box-shadow var(--t-standard) ease;
+  }
+  .alive::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--agent), transparent);
+    opacity: 0.45;
+    pointer-events: none;
+  }
+  .alive:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 40px -26px rgba(0, 0, 0, 0.85);
+  }
+  /* Animated signal underline (e.g. under the mission header while monitoring). */
+  .signal-underline {
+    background-image: linear-gradient(90deg, transparent, var(--agent), transparent);
+    background-size: 220% 100%;
+    animation: signal-slide 3.4s linear infinite;
+  }
 }
 
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
+}
+@keyframes tab-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes signal-slide {
+  to { background-position: 220% 0; }
 }
 
 /* Respect reduced motion: remove trajectory/morph animation, keep state visible. */

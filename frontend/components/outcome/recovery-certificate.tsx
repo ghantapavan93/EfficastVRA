@@ -39,7 +39,7 @@ export function RecoveryCertificate({ incidentId }: { incidentId: string }) {
   return (
     <section
       id="recovery-cert"
-      className="relative overflow-hidden rounded-2xl border border-line-strong bg-surface-1 p-6 sm:p-8"
+      className="alive relative overflow-hidden rounded-2xl border border-line-strong bg-surface-1 p-6 sm:p-8"
       style={{ animation: "certIn .5s ease-out both" }}
     >
       <style>{`

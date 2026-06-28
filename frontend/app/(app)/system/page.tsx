@@ -115,7 +115,7 @@ export default function SystemPage() {
   if (isLoading || !health) return <LoadingState label="Checking system health" />;
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-7">
+    <div className="tab-in mx-auto max-w-3xl px-6 py-7">
       <h1 className="text-2xl font-semibold tracking-tight text-ink-hi">System Health</h1>
       <p className="mt-1 text-sm text-ink-mut">Runtime status, versions, and safety posture.</p>
 

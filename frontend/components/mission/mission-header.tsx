@@ -63,6 +63,7 @@ export function MissionHeader({ m }: { m: MissionDetail }) {
         {/* progress rail */}
         <ProgressRail rail={m.progress_rail} />
       </div>
+      <div aria-hidden className="signal-underline h-px w-full opacity-40" />
     </div>
   );
 }
@@ -94,10 +95,15 @@ function ProgressRail({ rail }: { rail: RailStage[] }) {
       {rail.map((s, i) => (
         <li key={s.stage} className="flex min-w-0 flex-1 items-center gap-1">
           <div className="flex min-w-0 flex-col items-center gap-1.5">
-            <span
-              className={cn("h-3 w-3 rounded-full border-2 transition-colors", STATUS_DOT[s.status] ?? STATUS_DOT.upcoming, s.status === "active" && "ring-4 ring-agent-soft")}
-              aria-label={`${STAGE_LABEL[s.stage]}: ${s.status}`}
-            />
+            <span className="relative grid h-3 w-3 place-items-center">
+              {s.status === "active" && (
+                <span aria-hidden className="absolute inline-flex h-3 w-3 animate-ping rounded-full bg-agent opacity-60" />
+              )}
+              <span
+                className={cn("relative h-3 w-3 rounded-full border-2 transition-colors", STATUS_DOT[s.status] ?? STATUS_DOT.upcoming, s.status === "active" && "ring-4 ring-agent-soft")}
+                aria-label={`${STAGE_LABEL[s.stage]}: ${s.status}`}
+              />
+            </span>
             <span className={cn("whitespace-nowrap text-[10px]", s.status === "active" ? "text-ink" : s.status === "reopened" || s.status === "failed" ? "text-failure" : "text-ink-faint")}>
               {STAGE_LABEL[s.stage]}
             </span>

@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Gauge, Repeat } from "lucide-react";
+import { CountUp } from "@/components/forge/count-up";
 
 interface RelPoint {
   p_pred: number;
@@ -49,7 +50,7 @@ export function CalibrationPanel() {
   const line = pts.map((p) => `${px(p.p_pred).toFixed(1)},${py(p.observed).toFixed(1)}`).join(" ");
 
   return (
-    <section className="relative mt-4 overflow-hidden rounded-xl border border-line bg-surface-1 p-4">
+    <section className="alive relative mt-4 overflow-hidden rounded-xl border border-line bg-surface-1 p-4">
       <style>{`@keyframes calDraw{to{stroke-dashoffset:0}}@keyframes calFade{to{opacity:1}}@keyframes calDrift{0%{transform:translate3d(-6%,-4%,0)}100%{transform:translate3d(6%,4%,0)}}`}</style>
       <div
         aria-hidden
@@ -166,10 +167,10 @@ export function CalibrationPanel() {
 
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
-            <Metric label="Brier score" value={data.brier.toFixed(3)} hint="lower is better" tone={data.brier < 0.15 ? "verified" : data.brier < 0.25 ? "agent" : "failure"} />
-            <Metric label="ROC AUC" value={data.auc.toFixed(3)} hint="0.5 chance → 1.0 perfect" tone={data.auc > 0.85 ? "verified" : "agent"} />
-            <Metric label="Accuracy" value={`${Math.round(data.accuracy * 100)}%`} hint="@ 0.5 threshold" tone="agent" />
-            <Metric label="Early warning" value={`${Math.round(data.early_warning_rate * 100)}%`} hint="latent relapses flagged" tone={data.early_warning_rate > 0.7 ? "verified" : "agent"} />
+            <Metric label="Brier score" value={data.brier} decimals={3} hint="lower is better" tone={data.brier < 0.15 ? "verified" : data.brier < 0.25 ? "agent" : "failure"} />
+            <Metric label="ROC AUC" value={data.auc} decimals={3} hint="0.5 chance → 1.0 perfect" tone={data.auc > 0.85 ? "verified" : "agent"} />
+            <Metric label="Accuracy" value={Math.round(data.accuracy * 100)} suffix="%" hint="@ 0.5 threshold" tone="agent" />
+            <Metric label="Early warning" value={Math.round(data.early_warning_rate * 100)} suffix="%" hint="latent relapses flagged" tone={data.early_warning_rate > 0.7 ? "verified" : "agent"} />
           </div>
           <div className="rounded-lg border border-line bg-surface-2 p-3 text-[12px] text-ink-mut">
             <div className="label mb-1 text-ink">What this proves</div>
@@ -188,11 +189,15 @@ export function CalibrationPanel() {
 function Metric({
   label,
   value,
+  decimals = 0,
+  suffix = "",
   hint,
   tone,
 }: {
   label: string;
-  value: string;
+  value: number;
+  decimals?: number;
+  suffix?: string;
   hint: string;
   tone: "verified" | "agent" | "failure";
 }) {
@@ -200,7 +205,7 @@ function Metric({
   return (
     <div className="rounded-lg border border-line bg-surface-2 p-3">
       <div className="label">{label}</div>
-      <div className={`mono mt-1 text-xl ${color}`}>{value}</div>
+      <div className={`mono mt-1 text-xl ${color}`}><CountUp value={value} decimals={decimals} suffix={suffix} /></div>
       <div className="text-[10px] text-ink-mut">{hint}</div>
     </div>
   );

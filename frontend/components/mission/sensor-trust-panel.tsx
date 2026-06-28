@@ -23,7 +23,7 @@ export function SensorTrustPanel({ incidentId }: { incidentId: string }) {
   const t = TRUST[data.status ?? "UNKNOWN"] ?? TRUST.UNKNOWN;
   return (
     <section className="space-y-4">
-      <div className="rounded-xl border border-line bg-surface-1 p-5">
+      <div className="alive rounded-xl border border-line bg-surface-1 p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-agent" aria-hidden />

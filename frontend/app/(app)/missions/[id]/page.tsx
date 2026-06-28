@@ -103,7 +103,7 @@ function MissionDetail({ id }: { id: string }) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-6 py-6">
+      <div key={tab} className="tab-in mx-auto max-w-6xl px-6 py-6">
         {tab === "overview" && <Overview m={m} />}
         {tab === "diagnosis" && <DiagnosisPanel incidentId={id} />}
         {tab === "reasoning" && <AgentReasoning incidentId={id} />}
