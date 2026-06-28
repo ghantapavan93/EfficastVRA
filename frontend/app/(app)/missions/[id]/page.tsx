@@ -18,6 +18,7 @@ import { RecoveryDebtPanel } from "@/components/mission/recovery-debt-panel";
 import { SensorTrustPanel } from "@/components/mission/sensor-trust-panel";
 import { LotAtRiskPanel } from "@/components/mission/lot-at-risk-panel";
 import { StakeholderPanel } from "@/components/mission/stakeholder-panel";
+import { CommandCenter } from "@/components/mission/command-center";
 import { ComparableConditionsPanel } from "@/components/mission/comparable-conditions-panel";
 import { ProvenancePanel } from "@/components/mission/provenance-panel";
 import { DiagnosisPanel } from "@/components/mission/diagnosis-panel";
@@ -132,6 +133,7 @@ function Overview({ m }: { m: import("@/lib/types").MissionDetail }) {
   const b = m.worker_brief;
   return (
     <div className="space-y-5">
+      <CommandCenter m={m} />
       {b && (
         <section className="rounded-xl border border-line bg-surface-1 p-5">
           <div className="label mb-1">In plain words</div>
