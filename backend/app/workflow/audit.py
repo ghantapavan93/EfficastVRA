@@ -9,6 +9,7 @@ drop or duplicate a published decision.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 from typing import Optional
 
@@ -41,14 +42,35 @@ def _entry_hash(prev_hash: str, *, seq: int, type_: str, actor: str, role: str, 
     return hashlib.sha256(canon.encode()).hexdigest()
 
 
+def current_hmac_key() -> str:
+    """The active audit-signing key (empty ⇒ keyed signing disabled). Indirected through a function so
+    a deployment can source it from a vault/KMS and tests can monkeypatch it."""
+    return _settings.audit_hmac_key
+
+
+def _sign(entry_hash: str, key: str) -> str:
+    """HMAC-SHA256 over the entry hash. Returns '' when no key is configured (hash chain still applies)."""
+    if not key:
+        return ""
+    return hmac.new(key.encode(), entry_hash.encode(), hashlib.sha256).hexdigest()
+
+
 def verify_audit_chain(session: Session, correlation_id: str) -> dict:
     """Recompute the per-correlation hash chain and report whether it is intact (no row was altered,
-    inserted, or removed). Detects tampering at the first broken sequence number."""
+    inserted, or removed). Detects tampering at the first broken sequence number.
+
+    When a signing key is configured, each entry's keyed signature (HMAC-SHA256 over ``entry_hash``) is
+    *also* verified — so a privileged attacker who can rewrite the DB and recompute the public hash chain
+    still cannot forge the signature without the secret. ``authenticated`` is True/False when signing is
+    on, ``None`` when off.
+    """
+    key = current_hmac_key()
     events = session.exec(
         select(AuditEvent).where(AuditEvent.correlation_id == correlation_id)
         .order_by(AuditEvent.seq)  # type: ignore[arg-type]
     ).all()
     prev = ""
+    authenticated: Optional[bool] = (True if key else None)
     for ev in events:
         expected = _entry_hash(
             prev, seq=ev.seq, type_=ev.type.value, actor=ev.actor, role=ev.role.value,
@@ -58,9 +80,15 @@ def verify_audit_chain(session: Session, correlation_id: str) -> dict:
             model_version=ev.model_version, prompt_version=ev.prompt_version,
         )
         if ev.prev_hash != prev or ev.entry_hash != expected:
-            return {"ok": False, "broken_at_seq": ev.seq, "count": len(events)}
+            return {"ok": False, "broken_at_seq": ev.seq, "count": len(events),
+                    "signed": bool(key), "authenticated": False if key else None}
+        if key and not hmac.compare_digest(ev.entry_hmac or "", _sign(ev.entry_hash, key)):
+            # Hash chain is internally consistent but the keyed signature does not verify → forgery.
+            return {"ok": False, "broken_at_seq": ev.seq, "count": len(events),
+                    "signed": True, "authenticated": False, "signature_broken": True}
         prev = ev.entry_hash
-    return {"ok": True, "broken_at_seq": None, "count": len(events)}
+    return {"ok": True, "broken_at_seq": None, "count": len(events),
+            "signed": bool(key), "authenticated": authenticated}
 
 
 def record_audit(
@@ -94,6 +122,7 @@ def record_audit(
         incident_id=incident_id, contract_id=contract_id, plant_id=resolved_plant,
         model_version=model_version, prompt_version=prompt_version,
     )
+    entry_hmac = _sign(entry_hash, current_hmac_key())
     ev = AuditEvent(
         tenant_id=_settings.tenant_id,
         plant_id=resolved_plant,
@@ -114,6 +143,7 @@ def record_audit(
         prompt_version=prompt_version,
         prev_hash=prev_hash,
         entry_hash=entry_hash,
+        entry_hmac=entry_hmac,
     )
     session.add(ev)
     session.flush()

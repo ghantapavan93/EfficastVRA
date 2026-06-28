@@ -14,6 +14,7 @@ from sqlmodel import Session, select
 
 from app import observability
 from app.config import get_settings
+from app.security_http import SecurityMiddleware
 from app.db import engine, init_db
 from app.domain.models import Plant
 from app.gateway.gateway import GatewayError
@@ -88,6 +89,12 @@ async def observability_mw(request: Request, call_next):
         except Exception:  # never fail a request because the relay hiccuped
             log.warning('outbox_drain_failed correlation_id=%s', cid)
     return response
+
+
+# Edge security: hardening headers, body-size guard, per-identity rate limiting. Registered after the
+# observability middleware so it is the OUTERMOST layer — it can reject abusive requests before any
+# handler runs and stamp security headers onto every response (including short-circuited 413/429s).
+app.add_middleware(SecurityMiddleware)
 
 
 @app.exception_handler(GatewayError)

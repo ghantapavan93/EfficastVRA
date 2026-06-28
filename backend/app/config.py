@@ -36,6 +36,19 @@ class Settings:
     policy_version: str = os.getenv("VRA_POLICY_VERSION", "policy-2026.06")
     workflow_version: str = os.getenv("VRA_WORKFLOW_VERSION", "wf-1")
 
+    # ── Security hardening (defense-in-depth at the edge) ──────────────────────────────────────
+    # Limits below are PROTOTYPE_ASSUMPTIONs (our deployment choices, not claims) — all env-tunable.
+    security_headers_enabled: bool = os.getenv("VRA_SECURITY_HEADERS", "1") == "1"
+    # HSTS only makes sense once TLS terminates here/upstream — off by default (honest).
+    security_hsts_enabled: bool = os.getenv("VRA_SECURITY_HSTS", "0") == "1"
+    rate_limit_enabled: bool = os.getenv("VRA_RATE_LIMIT", "1") == "1"
+    rate_limit_requests: int = int(os.getenv("VRA_RATE_LIMIT_REQUESTS", "600"))  # per window, per identity
+    rate_limit_window_s: int = int(os.getenv("VRA_RATE_LIMIT_WINDOW_S", "60"))
+    max_request_body_bytes: int = int(os.getenv("VRA_MAX_BODY_BYTES", "1048576"))  # 1 MiB
+    # Keyed audit signing. Empty ⇒ keyed signing OFF (the SHA-256 hash chain still runs). Set a strong
+    # secret (from a vault/KMS in production) to make the audit trail unforgeable without the key.
+    audit_hmac_key: str = os.getenv("VRA_AUDIT_HMAC_KEY", "")
+
     @property
     def demo_mode(self) -> bool:
         return os.getenv("VRA_DEMO_MODE", "1") == "1"

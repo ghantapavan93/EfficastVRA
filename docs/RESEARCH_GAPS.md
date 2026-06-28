@@ -131,3 +131,14 @@ shops (Molinos Cañuelas the marquee outlier).
   UNVERIFIED.** The retraction was an over‑correction — a reminder that *corrections themselves get
   re‑checked*, and that "absent from press/LinkedIn" ≠ "absent from the primary site." Don't assert the
   person's background; do record the role is site‑listed.
+
+## Security-hardening assumptions (Phase 43, 2026-06-28)
+All `PROTOTYPE_ASSUMPTION` (our deployment choices, env-tunable — not claims about Efficast or any external
+system), surfaced live at `/api/security`:
+- **Rate-limit defaults** (600 requests / 60s per identity) are illustrative, not tuned to a real workload.
+  The limiter is **per-instance / in-memory** — multi-instance quotas need a shared store (Redis).
+- **Body-size limit** (1 MiB) is a default guard, not a measured requirement.
+- **Keyed audit signing is OFF by default** (`VRA_AUDIT_HMAC_KEY` empty). When enabled, the key is read from
+  an env var — a real deployment sources it from a vault/KMS and rotates it. The SHA-256 hash chain is always on.
+- **Security-event detection** is an in-process ring + structured log (SIEM-ready), not a wired SIEM.
+- **TLS/HSTS** are deployment-stage; HSTS is off until TLS terminates at/above this service.

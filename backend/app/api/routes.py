@@ -460,6 +460,15 @@ def governance(session: Session = Depends(get_session)) -> dict:
     return posture(session)
 
 
+@router.get("/security")
+def security(session: Session = Depends(get_session)) -> dict:
+    """Live security posture: edge hardening (headers, rate limiting, body guard), keyed audit
+    signing + integrity, the classified security-event detection stream, and honest gaps."""
+    from app.services.security_posture import posture
+
+    return posture(session)
+
+
 @router.get("/integration")
 def integration(session: Session = Depends(get_session)) -> dict:
     """ISA-95 hierarchy, Unified-Namespace topics, and the connector catalog."""

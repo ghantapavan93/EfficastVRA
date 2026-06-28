@@ -24,9 +24,16 @@ disposition · operator trust.
 | T10 | **Unreviewed "learning" treated as fact** | knowledge candidate shown as approved guidance | candidates are `PENDING_REVIEW`, labelled as such in UI + API | `test_audit_completeness_and_knowledge_pending` |
 | T11 | **Silent / unauditable actions** | a write bypasses logging | every gateway call writes `ACTION_PROPOSED/CLASSIFIED/TOOL_EXECUTED`; every transition writes `STATE_TRANSITION` | audit-completeness test |
 | T12 | **Runaway repeated tool failures** | a flaky tool hammered | per-tool circuit breaker opens after N failures, cools down | `app/gateway/circuit.py` |
+| T13 | **Request flooding / API abuse** | a client hammers the API to exhaust resources | per-identity fixed-window **rate limiter** at the edge → 429 + `Retry-After`; emits a `rate_limit_exceeded` security event | `test_rate_limit_returns_429_with_retry_after`, `test_rate_limit_is_per_identity` |
+| T14 | **Oversized-payload DoS** | a multi-MB body exhausts memory | **body-size guard** rejects over the configured limit with 413 before routing | `test_oversized_body_rejected_with_413` |
+| T15 | **Browser-side attacks (clickjacking, MIME-sniff, referrer leak)** | embedding the API/UI, content sniffing | hardening **response headers** on every response: `Content-Security-Policy default-src 'none'`, `X-Frame-Options DENY`, `nosniff`, COOP/CORP, `Permissions-Policy` | `test_security_headers_present_on_api` |
+| T16 | **Privileged tamper of the audit DB** | an attacker with DB write access rewrites rows + recomputes the public hash chain | optional **HMAC-SHA256 keyed signing** of each entry — unforgeable without the secret; `verify_audit_chain` reports `authenticated:false` on signature mismatch | `test_audit_hmac_signs_and_detects_signature_forgery` |
+| T17 | **Silent security events** | a denial/abuse attempt goes unnoticed | every gateway denial + edge block emits a **classified security event** (severity-ranked, SIEM-ready log + `/api/security` stream); prohibited-action attempts are `critical` | `test_prohibited_action_denied_emits_critical_event` |
 
 ## Residual risks (documented, not mitigated in the prototype)
 - Header-based identity is **demo-grade** — replace with a real IdP + signed tokens.
-- No transport encryption / secrets management in the local profile.
+- TLS termination + HSTS are deployment-stage (enable `VRA_SECURITY_HSTS` once TLS terminates here).
+- The audit-signing key (`VRA_AUDIT_HMAC_KEY`) is sourced from env and **off by default**; a real deployment sources it from a vault/KMS and rotates it. Until set, the chain is hash-evident but not keyed-signed.
+- Rate limiting + the security-event ring are **per-instance / in-memory**; multi-instance quotas and durable detection need a shared store (Redis) + SIEM.
 - Synthetic telemetry is trusted as authentic; production needs signed device provenance.
-- No rate limiting on the public API. See [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md).
+- See [`SECURITY_HARDENING.md`](SECURITY_HARDENING.md) for the live posture (`/api/security`) and [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md).

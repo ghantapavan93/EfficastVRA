@@ -625,6 +625,9 @@ class AuditEvent(Base, table=True):
     # Tamper-evidence: each entry hashes the previous one, forming a per-correlation hash chain.
     prev_hash: str = ""
     entry_hash: str = Field(default="", index=True)
+    # Keyed signature over entry_hash (HMAC-SHA256). Empty when no signing key is configured. Makes the
+    # chain *unforgeable* without the secret — a DB-level attacker cannot recompute it like the public hash.
+    entry_hmac: str = ""
 
 
 class Notification(Base, table=True):

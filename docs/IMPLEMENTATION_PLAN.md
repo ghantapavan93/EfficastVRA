@@ -272,3 +272,22 @@ reopen, a 2nd machine end‑to‑end); 36 mind‑blowing data (seeded generative
 (audit anchor, ingest‑via‑gateway, port‑mediated reads); 39 frontend truth + negative‑path tests; 40 integration
 proof (2nd EfficastPort). **[infra]** items (OIDC multi‑tenant, broker exactly‑once, concurrent‑writer tests)
 stay deferred — verified honestly only on Postgres/a broker.
+
+**Phase 43 — Security hardening / defense-in-depth (done).** Closed the two honest gaps governance had been
+declaring ("No API rate limiting", "no WORM/signing"), at the edge + over the audit — without widening the
+agent's authority (no new write path, no machine control; rejection + detection + tamper-evidence only).
+- [x] **Edge** — `app/security_http.py::SecurityMiddleware` (outermost): hardening response headers
+      (CSP `default-src 'none'`, frame-deny, nosniff, COOP/CORP, Permissions-Policy), per-identity
+      **rate limiter** (`app/rate_limit.py`, 600/60s default, 429+`Retry-After`), and a **body-size guard**
+      (1 MiB → 413). Health/docs exempt. Config in `app/config.py` (all `PROTOTYPE_ASSUMPTION`, env-tunable).
+- [x] **Audit** — optional **HMAC-SHA256 keyed signing** of each `entry_hash` (`entry_hmac` column);
+      `verify_audit_chain` now reports `signed`/`authenticated` and flags `signature_broken`. Off until
+      `VRA_AUDIT_HMAC_KEY` set (honest default); the SHA-256 chain is unchanged.
+- [x] **Detection** — `app/security_events.py`: classified, severity-ranked security-event stream
+      (SIEM-ready log + in-process ring) emitted from the gateway's single `_deny()` choke point + edge blocks.
+- [x] **Posture** — `GET /api/security` (`app/services/security_posture.py`), live + framework-mapped
+      (OWASP ASVS/API-Top-10, NIST CSF Detect, ISO 27001 A.12/A.16, IEC 62443) + honest gaps. Governance
+      `posture()` reconciled (the old rate-limit gap removed). Docs: `SECURITY_HARDENING.md`, `THREAT_MODEL.md`
+      T13–T17. Tests: `tests/test_security.py` (11). Backend **209** green.
+- [ ] **[infra]** distributed rate limiting (Redis), vault/KMS-sourced signing key + rotation, SIEM shipping,
+      TLS/HSTS — deployment-stage, deferred honestly.

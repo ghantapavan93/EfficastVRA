@@ -11,6 +11,21 @@ from app.domain import models  # noqa: F401  (register tables)
 from app.seed import seed_all
 
 
+@pytest.fixture(autouse=True)
+def _reset_security_state():
+    """Isolate the per-process security singletons between tests (rate-limit windows + event ring),
+    so request counts from one test can never throttle or leak into another."""
+    try:
+        from app import security_events
+        from app.security_http import LIMITER
+
+        LIMITER.reset()
+        security_events.REGISTRY.reset()
+    except Exception:
+        pass
+    yield
+
+
 @pytest.fixture()
 def engine():
     eng = create_engine(

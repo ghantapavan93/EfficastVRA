@@ -17,6 +17,7 @@ from typing import Optional
 from pydantic import ValidationError
 from sqlmodel import Session
 
+from app import security_events
 from app.auth import Principal
 from app.config import get_settings
 from app.domain.base import utcnow
@@ -79,6 +80,10 @@ def _deny(session: Session, *, correlation_id: str, principal: Principal, tool_n
                  actor=principal.username if principal else "unknown",
                  role=principal.role if principal else None, summary=f"DENIED [{stage}] {tool_name}: {reason}",
                  incident_id=incident_id, detail={"tool": tool_name, "stage": stage, "reason": reason})
+    # First-class security event (detection stream) — classified by pipeline stage. A prohibited-action
+    # attempt or a cross-plant attempt surfaces as 'critical'. Never changes the verdict; only records.
+    security_events.emit_denial(stage=stage, tool=tool_name, reason=reason, principal=principal,
+                                correlation_id=correlation_id)
     session.flush()
     raise GatewayError(reason, status_code=status_code, code="denied", stage=stage)
 

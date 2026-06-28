@@ -70,6 +70,11 @@ def posture(session: Session) -> dict:
             "tenant_plant_isolation": "enforced on actions and on retrieval",
             "prompt_injection": "permissions come from policy+role, never from retrieved text",
             "interop_boundary": "MCP server exposes READ-ONLY tools only",
+            "edge_hardening": "security headers (CSP/nosniff/frame-deny/COOP-CORP) + per-identity rate "
+                              "limiting + request body-size guard",
+            "audit_signing": "tamper-evident SHA-256 hash chain, optionally HMAC-SHA256 keyed signing",
+            "detection": "classified security-event stream on every denial (SIEM-ready)",
+            "posture_detail": "/api/security",
         },
         "logging": {
             "format": "structured JSON",
@@ -118,8 +123,10 @@ def posture(session: Session) -> dict:
         ],
         "honest_gaps": [
             "Authentication is a demo header — wire enterprise SSO/OIDC at the auth seam for production.",
-            "No TLS / secrets vault / SIEM export / WORM anchoring of the audit head yet (deployment-stage).",
-            "No API rate limiting / quota.",
+            "TLS termination, a vault/KMS for the audit-signing key, and SIEM shipping are deployment-stage; "
+            "security events already stream to structured logs ready for pickup.",
+            "Rate limiting + the security-event ring are per-instance (in-memory) — use Redis/a SIEM for "
+            "shared multi-instance quotas and durable detection. See /api/security for live detail.",
         ],
         "control_checks": control_checks(session),
         "versions": {"policy": _settings.policy_version, "workflow": _settings.workflow_version,
