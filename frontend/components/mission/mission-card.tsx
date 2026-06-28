@@ -8,14 +8,23 @@ import { cn } from "@/lib/utils";
 import { AgentActivityIndicator } from "@/components/forge/badges";
 import { StateBadge, SeverityIndicator } from "@/components/forge/badges";
 import { Chip, ProgressBar } from "@/components/forge/primitives";
+import { CountUp } from "@/components/forge/count-up";
+
+const sigVar = (m: MissionSummary) =>
+  m.state === "VERIFIED_RECOVERY" ? "var(--verified)" : m.reopened_count > 0 ? "var(--failure)" : "var(--agent)";
 
 export function MissionCard({ m, prominent = false }: { m: MissionSummary; prominent?: boolean }) {
   if (prominent) return <ProminentCard m={m} />;
   return (
     <Link
       href={`/missions/${m.id}`}
-      className="group flex items-center gap-4 rounded-lg border border-line bg-surface-1 px-4 py-3 transition-colors hover:border-line-strong hover:bg-surface-2"
+      className="group relative flex items-center gap-4 overflow-hidden rounded-lg border border-line bg-surface-1 px-4 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:bg-surface-2 hover:shadow-[0_14px_32px_-20px_rgba(0,0,0,.8)]"
     >
+      <span
+        aria-hidden
+        className="absolute inset-y-2 left-0 w-[3px] rounded-full opacity-70 transition-opacity group-hover:opacity-100"
+        style={{ background: sigVar(m), boxShadow: `0 0 12px ${sigVar(m)}` }}
+      />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="mono text-xs text-ink-mut">{m.id}</span>
@@ -35,7 +44,7 @@ export function MissionCard({ m, prominent = false }: { m: MissionSummary; promi
       <div className="w-28 shrink-0">
         <div className="mb-1 flex justify-between text-[10px] text-ink-faint">
           <span>progress</span>
-          <span className="mono">{m.recovery_progress}%</span>
+          <span className="mono"><CountUp value={m.recovery_progress} suffix="%" /></span>
         </div>
         <ProgressBar value={m.recovery_progress} tone={m.state === "VERIFIED_RECOVERY" ? "verified" : "agent"} />
       </div>
@@ -84,7 +93,7 @@ function ProminentCard({ m }: { m: MissionSummary }) {
         <Stat icon={TriangleAlert} label="Fault" value={m.fault_code ?? "—"} sub={m.contract_no ? `${m.contract_no} v${m.contract_version}` : "no contract"} />
         <div className="rounded-lg border border-line bg-raised px-3 py-2">
           <div className="label">Recovery progress</div>
-          <div className="mono mt-1 text-lg text-ink-hi">{m.recovery_progress}%</div>
+          <div className="mono mt-1 text-lg text-ink-hi"><CountUp value={m.recovery_progress} suffix="%" /></div>
           <div className="mt-1.5"><ProgressBar value={m.recovery_progress} tone={m.state === "VERIFIED_RECOVERY" ? "verified" : reopened ? "failure" : "agent"} /></div>
         </div>
       </div>

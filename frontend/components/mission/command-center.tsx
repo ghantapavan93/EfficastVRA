@@ -23,6 +23,7 @@ import {
   useSignature,
 } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
+import { CountUp, useCountUp } from "@/components/forge/count-up";
 import type { MissionDetail } from "@/lib/types";
 
 type Sig = "verified" | "agent" | "warning" | "failure" | "steel";
@@ -96,7 +97,7 @@ export function CommandCenter({ m }: { m: MissionDetail }) {
                 {disp?.can_close ? "Cleared to close" : "Not cleared to close"}
               </HeroChip>
               <HeroChip sig="agent" icon={<Activity className="h-3.5 w-3.5" />}>
-                <span className="mono">{stable}/{required}</span> stable cycles
+                <span className="mono"><CountUp value={stable} />/{required}</span> stable cycles
               </HeroChip>
               {m.reopened_count > 0 && (
                 <HeroChip sig="warning" icon={<AlertTriangle className="h-3.5 w-3.5" />}>reopened ×{m.reopened_count}</HeroChip>
@@ -113,14 +114,13 @@ export function CommandCenter({ m }: { m: MissionDetail }) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Tile i={0} icon={<Gauge className="h-4 w-4" />} title="Closure risk"
           sig={risk?.band === "high" ? "failure" : risk?.band === "elevated" ? "warning" : "verified"}>
-          <ArcGauge value={(risk?.risk ?? 0)} sig={risk?.band === "high" ? "failure" : risk?.band === "elevated" ? "warning" : "verified"}
-            label={`${risk?.risk_pct ?? 0}%`} mounted={mounted} />
+          <ArcGauge pct={risk?.risk_pct ?? 0} sig={risk?.band === "high" ? "failure" : risk?.band === "elevated" ? "warning" : "verified"} mounted={mounted} />
           <Caption>{(risk?.band ?? "low").replace(/_/g, " ")} · false-closure</Caption>
         </Tile>
 
         <Tile i={1} icon={<Fingerprint className="h-4 w-4" />} title="Recovery signature"
           sig={(sig?.alignment ?? 0) >= 0.34 ? "verified" : (sig?.alignment ?? 0) <= -0.34 ? "failure" : "warning"}>
-          <BigStat value={signed(sig?.alignment ?? 0)} />
+          <div className="mono text-2xl font-semibold text-ink-hi"><CountUp value={sig?.alignment ?? 0} decimals={2} signed /></div>
           <Bar value={((sig?.alignment ?? 0) + 1) * 50}
             sig={(sig?.alignment ?? 0) >= 0.34 ? "verified" : (sig?.alignment ?? 0) <= -0.34 ? "failure" : "warning"} mounted={mounted} />
           <Caption>{(sig?.rung ?? "insufficient evidence").replace(/_/g, " ")}</Caption>
@@ -140,9 +140,9 @@ export function CommandCenter({ m }: { m: MissionDetail }) {
 
         <Tile i={4} icon={<Activity className="h-4 w-4" />} title="Verification window"
           sig={pct >= 100 ? "verified" : "agent"}>
-          <BigStat value={`${pct}%`} />
+          <div className="mono text-2xl font-semibold text-ink-hi"><CountUp value={pct} suffix="%" /></div>
           <Bar value={pct} sig={pct >= 100 ? "verified" : "agent"} mounted={mounted} />
-          <Caption><span className="mono">{stable}/{required}</span> consecutive stable cycles</Caption>
+          <Caption><span className="mono"><CountUp value={stable} />/{required}</span> consecutive stable cycles</Caption>
         </Tile>
 
         <Tile i={5}
@@ -172,8 +172,6 @@ export function CommandCenter({ m }: { m: MissionDetail }) {
 }
 
 /* ── building blocks ─────────────────────────────────────────────────────── */
-const signed = (a: number) => `${a >= 0 ? "+" : ""}${a.toFixed(2)}`;
-
 function StatusRing({ sig, pct, can }: { sig: Sig; pct: number; can: boolean }) {
   const v = SIG_VAR[sig];
   const C = 2 * Math.PI * 34;
@@ -229,16 +227,17 @@ function Bar({ value, sig, mounted }: { value: number; sig: Sig; mounted: boolea
     </div>
   );
 }
-function ArcGauge({ value, sig, label, mounted }: { value: number; sig: Sig; label: string; mounted: boolean }) {
+function ArcGauge({ pct, sig, mounted }: { pct: number; sig: Sig; mounted: boolean }) {
   const arc = Math.PI * 32;
-  const frac = Math.max(0, Math.min(1, value));
+  const frac = Math.max(0, Math.min(1, pct / 100));
+  const shown = useCountUp(pct);
   return (
-    <svg viewBox="0 0 80 46" className="w-full max-w-[150px]" role="img" aria-label={label}>
+    <svg viewBox="0 0 80 46" className="w-full max-w-[150px]" role="img" aria-label={`${pct}%`}>
       <path d="M 8 40 A 32 32 0 0 1 72 40" fill="none" stroke="var(--surface-3)" strokeWidth="6" strokeLinecap="round" />
       <path d="M 8 40 A 32 32 0 0 1 72 40" fill="none" stroke={SIG_VAR[sig]} strokeWidth="6" strokeLinecap="round"
         strokeDasharray={arc} strokeDashoffset={mounted ? arc * (1 - frac) : arc}
         style={{ transition: "stroke-dashoffset 1.1s cubic-bezier(.22,1,.36,1)" }} />
-      <text x="40" y="38" textAnchor="middle" className="mono" fill="var(--text-hi)" fontSize="15" fontWeight="600">{label}</text>
+      <text x="40" y="38" textAnchor="middle" className="mono" fill="var(--text-hi)" fontSize="15" fontWeight="600">{Math.round(shown)}%</text>
     </svg>
   );
 }
