@@ -37,7 +37,7 @@ export function NavRail() {
       <Link href="/" aria-label="Verified Recovery Agent home" className="sheen mb-3 grid h-9 w-9 place-items-center rounded-[10px] bg-brand-soft text-brand ring-1 ring-brand/30 shadow-[0_0_24px_-8px_var(--brand)]">
         <FlaskConical className="h-4 w-4" />
       </Link>
-      {items.map((it) => {
+      {items.map((it, i) => {
         const isActive = it.match(pathname);
         return (
           <Tooltip key={it.label} content={it.label}>
@@ -45,14 +45,15 @@ export function NavRail() {
               href={it.href}
               aria-label={it.label}
               aria-current={isActive ? "page" : undefined}
+              style={{ animation: "nav-pop .4s ease both", animationDelay: `${i * 38}ms` }}
               className={cn(
-                "relative grid h-10 w-10 place-items-center rounded-[10px] transition-all duration-150",
+                "relative grid h-10 w-10 place-items-center rounded-[10px] transition-all duration-150 hover:-translate-y-px active:scale-95",
                 isActive
-                  ? "bg-agent-soft text-agent ring-1 ring-agent/30 shadow-[0_0_22px_-8px_var(--agent)]"
+                  ? "bg-agent-soft text-agent ring-1 ring-agent/40 shadow-[0_0_26px_-6px_var(--agent)]"
                   : "text-ink-mut hover:text-ink hover:bg-surface-2",
               )}
             >
-              {isActive && <span className="absolute -left-3 h-5 w-[3px] rounded-pill bg-agent" aria-hidden />}
+              {isActive && <span className="absolute -left-3 h-5 w-[3px] rounded-pill bg-agent shadow-[0_0_10px_var(--agent)]" aria-hidden />}
               <it.icon className="h-[18px] w-[18px]" />
               {it.badge > 0 && (
                 <span

@@ -186,6 +186,10 @@
   .tab-in {
     animation: tab-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
+  /* Route-level cross-fade — composes with per-page slide-ins (opacity only, never double-translates). */
+  .route-in {
+    animation: route-in 0.3s ease both;
+  }
   /* "Alive" panel treatment: a signal hairline on top + a hover lift. Reused across mission panels. */
   .alive {
     position: relative;
@@ -221,6 +225,18 @@
 @keyframes tab-in {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: none; }
+}
+@keyframes route-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes nav-pop {
+  from { opacity: 0; transform: translateX(-5px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes cmdk-pop {
+  from { opacity: 0; transform: translateX(-50%) scale(0.97) translateY(-4px); }
+  to { opacity: 1; transform: translateX(-50%); }
 }
 @keyframes signal-slide {
   to { background-position: 220% 0; }

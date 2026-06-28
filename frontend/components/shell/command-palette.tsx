@@ -41,7 +41,13 @@ export function CommandPalette() {
       open={commandOpen}
       onOpenChange={setCommandOpen}
       label="Command palette"
-      className="fixed left-1/2 top-[18%] z-[60] w-[min(92vw,560px)] -translate-x-1/2 overflow-hidden rounded-xl border border-line-strong bg-surface-3 shadow-e3"
+      className="fixed left-1/2 top-[18%] z-[60] w-[min(92vw,560px)] overflow-hidden rounded-xl border border-line-strong bg-surface-3 shadow-e3"
+      style={{
+        animation: "cmdk-pop .18s cubic-bezier(.22,1,.36,1) both",
+        background: "color-mix(in oklab, var(--surface-3) 86%, transparent)",
+        backdropFilter: "blur(18px) saturate(1.15)",
+        WebkitBackdropFilter: "blur(18px) saturate(1.15)",
+      }}
       overlayClassName="fixed inset-0 z-[59] bg-[var(--scrim)] backdrop-blur-sm"
     >
       <div className="flex items-center gap-2 border-b border-line px-3">
@@ -74,8 +80,13 @@ export function CommandPalette() {
           <Item icon={Play} onSelect={() => run(api.demoRun)}>Replay full scenario (headless)</Item>
         </Command.Group>
       </Command.List>
-      <div className="border-t border-line px-3 py-2 text-[11px] text-ink-faint">
-        Machine-control commands are never available — this agent cannot operate equipment.
+      <div className="flex items-center justify-between gap-2 border-t border-line px-3 py-2 text-[11px] text-ink-faint">
+        <span>Machine-control commands are never available.</span>
+        <span className="flex items-center gap-1">
+          <kbd className="rounded border border-line bg-surface-2 px-1">↑↓</kbd>nav
+          <kbd className="ml-1 rounded border border-line bg-surface-2 px-1">↵</kbd>go
+          <kbd className="ml-1 rounded border border-line bg-surface-2 px-1">esc</kbd>
+        </span>
       </div>
     </Command.Dialog>
   );
@@ -93,10 +104,11 @@ function Item({
   return (
     <Command.Item
       onSelect={onSelect}
-      className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-sm text-ink aria-selected:bg-surface-1 aria-selected:text-ink-hi"
+      className="group flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-sm text-ink transition-colors aria-selected:bg-surface-1 aria-selected:text-ink-hi aria-selected:shadow-[inset_2px_0_0_var(--agent)]"
     >
-      <Icon className="h-4 w-4 text-ink-mut" />
-      {children}
+      <Icon className="h-4 w-4 text-ink-mut group-aria-selected:text-agent" />
+      <span className="flex-1">{children}</span>
+      <kbd className="hidden rounded border border-line px-1 text-[10px] text-ink-mut group-aria-selected:inline-block">↵</kbd>
     </Command.Item>
   );
 }
