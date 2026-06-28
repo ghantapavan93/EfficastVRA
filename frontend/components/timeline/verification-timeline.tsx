@@ -133,17 +133,22 @@ export function VerificationTimeline({ incidentId }: { incidentId: string }) {
           <AuditIntegrityBadge incidentId={incidentId} />
         </div>
         <ol className="relative space-y-1 border-l border-line pl-5">
-          {data.events.map((e) => {
+          <style>{`@keyframes evIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+            @keyframes evGlow{0%,100%{opacity:.55}50%{opacity:1}}`}</style>
+          {data.events.map((e, i) => {
             const Icon = TYPE_ICON[e.type] ?? Bot;
             const critical = e.type === "CONTRACT_VIOLATED" || e.type === "INCIDENT_REOPENED";
             const verified = e.type === "RECOVERY_VERIFIED";
             return (
-              <li key={e.seq} className="relative py-1.5">
+              <li key={e.seq} className="relative py-1.5"
+                  style={{ animation: "evIn .42s ease-out both", animationDelay: `${Math.min(i * 45, 900)}ms` }}>
                 <span
                   className={cn(
                     "absolute -left-[27px] grid h-5 w-5 place-items-center rounded-full border-2 bg-canvas",
                     critical ? "border-failure text-failure" : verified ? "border-verified text-verified" : "border-line text-ink-mut",
                   )}
+                  style={critical ? { boxShadow: "0 0 12px var(--failure)", animation: "evGlow 1.8s ease-in-out infinite" }
+                    : verified ? { boxShadow: "0 0 12px var(--verified)", animation: "evGlow 2.2s ease-in-out infinite" } : undefined}
                 >
                   <Icon className="h-2.5 w-2.5" />
                 </span>
@@ -167,9 +172,13 @@ export function VerificationTimeline({ incidentId }: { incidentId: string }) {
 function CycleTicker({ cycles }: { cycles: TimelineCycle[] }) {
   return (
     <section className="rounded-xl border border-line bg-surface-1 p-3">
+      <style>{`
+        @keyframes cyPop{from{opacity:0;transform:scale(.35)}to{opacity:1;transform:none}}
+        @keyframes cyFault{0%,100%{box-shadow:0 0 0 0 rgba(255,93,93,.55)}50%{box-shadow:0 0 0 4px rgba(255,93,93,.0)}}
+      `}</style>
       <SectionLabel className="mb-2">Cycle-by-cycle ({cycles.length} observed)</SectionLabel>
       <div className="flex flex-wrap gap-1" role="list" aria-label="Observed cycles">
-        {cycles.map((c) => {
+        {cycles.map((c, i) => {
           const fault = !!c.fault_code;
           return (
             <div
@@ -180,6 +189,12 @@ function CycleTicker({ cycles }: { cycles: TimelineCycle[] }) {
                 "grid h-6 w-6 place-items-center rounded text-[9px] font-medium",
                 fault ? "bg-failure text-white ring-2 ring-failure/40" : "bg-verified-soft text-verified",
               )}
+              style={{
+                animation: fault
+                  ? "cyPop .3s ease-out both, cyFault 1.7s ease-in-out infinite .5s"
+                  : "cyPop .3s ease-out both",
+                animationDelay: fault ? undefined : `${Math.min(i * 26, 1300)}ms`,
+              }}
             >
               {c.cycle_index}
             </div>
