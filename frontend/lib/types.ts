@@ -641,6 +641,56 @@ export interface RecoveryDebtView {
   basis?: string;
 }
 
+export interface SensorTrustView {
+  available: boolean;
+  incident_id: string;
+  status?: string; // TRUSTED | DEGRADED | UNTRUSTED | UNKNOWN
+  satisfies_hard_conditions?: boolean;
+  reasons?: string[];
+  per_metric?: { metric: string; status: string; reasons: string[]; checks: { name: string; ok: boolean; detail: string }[] }[];
+  basis?: string;
+  reason?: string;
+}
+
+export interface LotAtRiskView {
+  available: boolean;
+  incident_id: string;
+  at_risk?: boolean;
+  summary?: string;
+  last_good_cycle?: number | null;
+  first_questionable_cycle?: number | null;
+  fault_code?: string;
+  affected_window?: { from: string | null; to: string | null };
+  affected_lots?: { id: string; disposition: string; produced_from: string | null; produced_to: string | null }[];
+  affected_lot_count?: number;
+  current_dispositions?: string[];
+  affected_quantity_note?: string;
+  required_quality_action?: string;
+  basis?: string;
+}
+
+export interface MaiaMessage {
+  kind: string;
+  incident_id: string;
+  title: string;
+  body: string;
+  severity: string;
+  actions: { label: string; deep_link: string }[];
+  surface: string;
+}
+export interface MaiaView { messages: MaiaMessage[]; kinds: string[] }
+
+export interface StakeholderView {
+  available: boolean;
+  persona: string;
+  label?: string;
+  focus?: string;
+  tabs?: string[];
+  can_act?: string[];
+  can_approve?: string[];
+  reason?: string;
+}
+
 export interface DispInvariant { key: string; label: string; ok: boolean; detail: string }
 
 export interface DispositionView {

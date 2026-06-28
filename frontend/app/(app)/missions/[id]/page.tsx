@@ -15,6 +15,9 @@ import { RecoverySignaturePanel } from "@/components/mission/recovery-signature-
 import { ClosureRiskPanel } from "@/components/mission/closure-risk-panel";
 import { DispositionPanel } from "@/components/mission/disposition-panel";
 import { RecoveryDebtPanel } from "@/components/mission/recovery-debt-panel";
+import { SensorTrustPanel } from "@/components/mission/sensor-trust-panel";
+import { LotAtRiskPanel } from "@/components/mission/lot-at-risk-panel";
+import { StakeholderPanel } from "@/components/mission/stakeholder-panel";
 import { ComparableConditionsPanel } from "@/components/mission/comparable-conditions-panel";
 import { ProvenancePanel } from "@/components/mission/provenance-panel";
 import { DiagnosisPanel } from "@/components/mission/diagnosis-panel";
@@ -57,6 +60,8 @@ function MissionDetail({ id }: { id: string }) {
     { key: "closure-risk", label: "Closure Risk" },
     { key: "disposition", label: "Disposition" },
     { key: "recovery-debt", label: "Recovery Debt" },
+    { key: "sensor-trust", label: "Sensor Trust" },
+    { key: "lot-at-risk", label: "Lot-at-Risk" },
     { key: "contract", label: "Recovery Contract" },
     { key: "evidence", label: "Evidence" },
     { key: "timeline", label: "Verification Timeline" },
@@ -64,6 +69,7 @@ function MissionDetail({ id }: { id: string }) {
     { key: "provenance", label: "Provenance" },
     { key: "outcome", label: "Outcome" },
     { key: "certificate", label: "Certificate" },
+    { key: "stakeholder", label: "Your View" },
   ];
 
   return (
@@ -107,6 +113,9 @@ function MissionDetail({ id }: { id: string }) {
         {tab === "closure-risk" && <ClosureRiskPanel incidentId={id} />}
         {tab === "disposition" && <DispositionPanel incidentId={id} />}
         {tab === "recovery-debt" && <RecoveryDebtPanel incidentId={id} />}
+        {tab === "sensor-trust" && <SensorTrustPanel incidentId={id} />}
+        {tab === "lot-at-risk" && <LotAtRiskPanel incidentId={id} />}
+        {tab === "stakeholder" && <StakeholderPanel incidentId={id} />}
         {tab === "contract" && <ContractPanel incidentId={id} />}
         {tab === "evidence" && <EvidenceQueue incidentId={id} />}
         {tab === "timeline" && <VerificationTimeline incidentId={id} />}

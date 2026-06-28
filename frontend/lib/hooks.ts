@@ -126,6 +126,26 @@ export function useRecoveryDebt(id: string, refetchInterval?: number) {
   });
 }
 
+export function useSensorTrust(id: string, refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({ queryKey: ["sensor-trust", id, username], queryFn: () => api.sensorTrust(id), refetchInterval });
+}
+
+export function useLotAtRisk(id: string, refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({ queryKey: ["lot-at-risk", id, username], queryFn: () => api.lotAtRisk(id), refetchInterval });
+}
+
+export function useMaiaMessages(id: string, refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({ queryKey: ["maia", id, username], queryFn: () => api.maiaMessages(id), refetchInterval });
+}
+
+export function useStakeholderView() {
+  const { username } = useRole();
+  return useQuery({ queryKey: ["stakeholder", username], queryFn: () => api.stakeholderView() });
+}
+
 export function useDecision(id: string, refetchInterval?: number) {
   const { username } = useRole();
   return useQuery({
@@ -220,7 +240,7 @@ export function useTriageAlert() {
 export function useRecoveryActions(id: string) {
   const qc = useQueryClient();
   const invalidate = () => {
-    for (const key of ["missions", "mission", "contract", "evidence", "timeline", "outcome", "audit", "reasoning", "diagnosis", "alerts", "forecast", "signature", "certificate", "closure-risk", "disposition", "comparability", "recovery-debt", "decision", "reliability", "provenance", "sensitivity"]) {
+    for (const key of ["missions", "mission", "contract", "evidence", "timeline", "outcome", "audit", "reasoning", "diagnosis", "alerts", "forecast", "signature", "certificate", "closure-risk", "disposition", "comparability", "recovery-debt", "sensor-trust", "lot-at-risk", "maia", "decision", "reliability", "provenance", "sensitivity"]) {
       qc.invalidateQueries({ queryKey: key === "missions" ? ["missions"] : [key, id] });
     }
   };

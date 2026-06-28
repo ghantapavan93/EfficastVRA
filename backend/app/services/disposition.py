@@ -132,8 +132,11 @@ def assess_disposition(session: Session, incident: Incident) -> dict:
     comparable = comp.get("classification", "UNKNOWN")
     confounders = confounders_of(comp)
     from app.services.recovery_debt import active_debt, is_breached
+    from app.services.sensor_trust import assess_sensor_trust
     debt = active_debt(session, incident)
     debt_breached = bool(debt and is_breached(debt))
+    sensor = assess_sensor_trust(session, incident)
+    sensor_status = sensor.get("status", "UNKNOWN") if sensor.get("available") else "UNKNOWN"
     # raw causal confidence (for provenance); the disposition decision rests on hard-gate + comparability.
     from app.services.recovery_signature import score_signature
     raw_conf = (score_signature(session, contract).alignment + 1.0) / 2.0
@@ -188,6 +191,13 @@ def assess_disposition(session: Session, incident: Incident) -> dict:
         disposition = "IN_PROGRESS"
         reasons.append(f"Monitoring: {ev.stable_streak}/{ev.required_stable_cycles} stable cycles.")
 
+    # Sensor Trust Gate: a measurement we can't trust can't satisfy a hard condition — an UNTRUSTED/UNKNOWN
+    # sensor caps an otherwise-VERIFIED recovery at INSUFFICIENT_EVIDENCE (same family as the ccr-1.0 ceiling).
+    if disposition == "VERIFIED" and sensor_status in ("UNTRUSTED", "UNKNOWN"):
+        disposition = "INSUFFICIENT_EVIDENCE"
+        reasons.append(f"Sensor trust is {sensor_status.lower()} — a measurement we can't trust can't satisfy "
+                       f"a hard recovery condition" + (f" ({'; '.join(sensor.get('reasons', []))})" if sensor.get("reasons") else "") + ".")
+
     # always surface comparability when it is not clean (even if another reason drives the disposition)
     if comparable != "COMPARABLE":
         reasons.append(f"Comparable conditions: {comparable.replace('_', ' ').lower()}"
@@ -223,6 +233,7 @@ def assess_disposition(session: Session, incident: Incident) -> dict:
                           "key_shifts": comp.get("key_shifts", 0),
                           "confounding_dimensions": confounders},
         "policy_provenance": provenance,
+        "sensor_trust": {"status": sensor_status, "reasons": sensor.get("reasons", [])},
         "recovery_debt": ({"debt_id": debt.id, "active": not debt_breached, "breached": debt_breached,
                            "expires_at": debt.expires_at.isoformat(),
                            "restrictions": debt.restrictions,

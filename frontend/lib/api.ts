@@ -16,9 +16,13 @@ import type {
   MissionDetail,
   MissionSummary,
   NotificationsView,
+  LotAtRiskView,
+  MaiaView,
   OutcomeView,
   ProvenanceView,
   RecoveryDebtView,
+  SensorTrustView,
+  StakeholderView,
   ReasoningView,
   ReliabilityView,
   SensitivityView,
@@ -109,6 +113,10 @@ export const api = {
   disposition: (id: string) => req<DispositionView>(`/api/incidents/${id}/disposition`),
   comparability: (id: string) => req<ComparabilityView>(`/api/incidents/${id}/comparability`),
   recoveryDebt: (id: string) => req<RecoveryDebtView>(`/api/incidents/${id}/recovery-debt`),
+  sensorTrust: (id: string) => req<SensorTrustView>(`/api/incidents/${id}/sensor-trust`),
+  lotAtRisk: (id: string) => req<LotAtRiskView>(`/api/incidents/${id}/lot-at-risk`),
+  maiaMessages: (id: string) => req<MaiaView>(`/api/incidents/${id}/maia-messages`),
+  stakeholderView: () => req<StakeholderView>(`/api/stakeholder-view`),
   grantRecoveryDebt: (id: string, body: {
     waived_condition_keys: string[];
     reason: string;

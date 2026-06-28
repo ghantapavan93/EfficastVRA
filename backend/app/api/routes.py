@@ -328,6 +328,52 @@ def sweep_recovery_debt_route(incident_id: str, session: Session = Depends(get_s
     return debt_view(session, inc)
 
 
+@router.get("/incidents/{incident_id}/sensor-trust")
+def sensor_trust(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """Sensor Trust Gate — TRUSTED / DEGRADED / UNTRUSTED / UNKNOWN per machine sensor, from deterministic
+    checks (range/flatline/noise/calibration). An untrusted or unknown sensor can't satisfy a hard condition."""
+    from app.services.sensor_trust import assess_sensor_trust
+
+    inc = _incident(session, incident_id)
+    return assess_sensor_trust(session, inc)
+
+
+@router.get("/incidents/{incident_id}/lot-at-risk")
+def lot_at_risk(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """Lot-at-Risk — last-good / first-questionable cycle, affected window + lots + disposition, and the
+    required quality action (a recommendation only; never auto-releases or quarantines product)."""
+    from app.services.lot_at_risk import assess_lot_at_risk
+
+    inc = _incident(session, incident_id)
+    return assess_lot_at_risk(session, inc)
+
+
+@router.get("/incidents/{incident_id}/maia-messages")
+def maia_messages(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """The structured MAIA/WhatsApp outbound message(s) applicable to this incident right now. Communication
+    surface only — deep-links into the app, never tool execution. Read-only."""
+    from app.integration.efficast.maia import MAIA_KINDS, maia_messages_for
+
+    inc = _incident(session, incident_id)
+    return {"messages": [m.model_dump(mode="json") for m in maia_messages_for(session, inc)], "kinds": MAIA_KINDS}
+
+
+@router.get("/stakeholder-views")
+def stakeholder_views() -> dict:
+    """All role-specific view contracts (what each persona sees / may do / may approve)."""
+    from app.services.stakeholder_view import all_stakeholder_views
+
+    return {"views": all_stakeholder_views()}
+
+
+@router.get("/stakeholder-view")
+def my_stakeholder_view(principal: Principal = Depends(get_principal)) -> dict:
+    """The current principal's role-specific view."""
+    from app.services.stakeholder_view import view_for_role
+
+    return view_for_role(principal.role.value)
+
+
 @router.get("/incidents/{incident_id}/sensitivity")
 def sensitivity(incident_id: str, session: Session = Depends(get_session)) -> dict:
     """Counterfactual contract calibration — replays the deterministic verifier over the real trajectory

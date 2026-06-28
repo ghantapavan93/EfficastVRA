@@ -23,7 +23,7 @@ git history and `docs/`.)
   consume + publish‑verdict‑back; auth "to be agreed"); consumption seam.
 - **Futuristic frontend pass** + M7 live/stale/offline connection indicator.
 
-**Baseline:** backend **181 pytest** passing · frontend **24 vitest** passing · typecheck/lint/build clean.
+**Baseline:** backend **198 pytest** passing · frontend **24 vitest** passing · typecheck/lint/build clean.
 
 **Phase 36 — Recovery Assurance R&D (in progress).** Four web-grounded research tracks (novelty/category,
 causal-consistency model, contract DSL+FSM, evaluation/data/verdict) → [`CAUSAL_RECOVERY_RESEARCH.md`](CAUSAL_RECOVERY_RESEARCH.md)
@@ -142,8 +142,24 @@ disposition → compare to the bundle's actual outcome → **zero writes (struct
 writes)**. Docs: EFFICAST_INTEGRATION_ARCHITECTURE / RECOVERY_DATA_CONTRACT / OPEN_QUESTIONS / REAL_DATA_
 PILOT_PLAN. Tests: `test_efficast_reconciliation.py` (9) + `test_efficast_shadow.py` (7) — replay→verified,
 cycle-17→failed, untrusted-sensor→insufficient, duplicate-webhook, sandbox-not-wired, no-write guarantee.
-**Deferred to 42c/42d:** Sensor Trust Gate (derive TRUSTED/DEGRADED/UNTRUSTED/UNKNOWN), Lot-at-Risk
-analysis, outbound MAIA contract, role-specific stakeholder views.
+**45 shipped — Phase 42c+42d (Sensor Trust Gate · Lot-at-Risk · MAIA outbound · stakeholder views).**
+**Sensor Trust Gate** `services/sensor_trust.py` — classifies machine sensors TRUSTED/DEGRADED/UNTRUSTED/
+UNKNOWN from deterministic checks (range/flatline/noise/calibration/replacement/mapping); the invariant
+*a measurement we can't trust can't satisfy a hard condition* is wired into the disposition (UNTRUSTED/
+UNKNOWN caps an otherwise-VERIFIED recovery to INSUFFICIENT_EVIDENCE) and into shadow mode (derived from
+telemetry). **Lot-at-Risk** `services/lot_at_risk.py` — last-good / first-questionable cycle, affected
+window + lots + disposition, required quality action — **read-only, never auto-releases/quarantines**
+(operationalises the thesis at the product level). **MAIA outbound** `integration/efficast/maia.py` — 7
+structured message kinds (verification-started … recovery-verified); deep-links only, **no tool execution**
+in messaging; derived from the live disposition. **Stakeholder views** `services/stakeholder_view.py` — 7
+personas (operator … plant manager … Efficast implementation engineer), each with relevant tabs/actions/
+approvals; the 4 app roles map to personas (presentation only — the gateway still enforces authorization).
+Routes: `/sensor-trust`, `/lot-at-risk`, `/maia-messages`, `/stakeholder-view(s)`. UI: sensor-trust, lot-
+at-risk, and "Your View" (role + MAIA) mission tabs — verified live (hero sensors TRUSTED, lots-at-risk
+flags cycle 17, MAIA recovery_verified, 0 console errors). Tests: `test_sensor_trust.py` (7),
+`test_lot_at_risk.py` (2), `test_maia_outbound.py` (4), `test_stakeholder_view.py` (4). Phase 42 (the
+user's Efficast real-data/integration program) is now complete a–d. Next: live-endpoint pilot (Stage 1 of
+REAL_DATA_PILOT_PLAN) once a sanitised dataset is provided; full per-role tab-filtering; SMD/CUSUM gate.
 
 **Deployment readiness (Render + Vercel + Neon, all free):** the repo deploys by *configuration, not code*
 — `main.py` lifespan creates tables + seeds on first boot; `/health` exists; `db.py` normalizes a

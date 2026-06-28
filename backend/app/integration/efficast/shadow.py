@@ -79,10 +79,16 @@ def _observations_from(events: list[EfficastEvent]) -> list[RecoveryObservation]
 
 
 def _sensor_trust(events: list[EfficastEvent]) -> str:
-    """Worst declared sensor status in the bundle (the 42c Sensor Trust Gate will DERIVE this; here we read it)."""
+    """Worse of the declared SensorHealth status and the Sensor Trust Gate's DERIVED classification over the
+    vibration telemetry series (range / flatline / noise / calibration)."""
+    from app.services.sensor_trust import classify_sensor
+
     order = {"untrusted": 0, "unknown": 1, "degraded": 2, "trusted": 3}
-    statuses = [e.status for e in events if isinstance(e, SensorHealth)]
-    return min(statuses, key=lambda s: order.get(s, 1)) if statuses else "unknown"
+    declared = [e.status for e in events if isinstance(e, SensorHealth)]
+    decl = min(declared, key=lambda s: order.get(s, 1)) if declared else "unknown"
+    vib = [e.value for e in events if isinstance(e, TelemetryObservation) and e.metric == "vibration_rms"]
+    derived = classify_sensor(vib, metric="vibration").status.lower()
+    return min([decl, derived], key=lambda s: order.get(s, 1))
 
 
 def _propose(sig, comparability: str, trust: str, observations: list[RecoveryObservation]) -> tuple[str, list[str]]:

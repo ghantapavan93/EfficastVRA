@@ -57,11 +57,13 @@ def make_f27_bundle(*, cycles: int = 30, relapse_at: int | None = None, cid: str
     for k in range(1, cycles + 1):
         ts = _BASE + timedelta(seconds=_CADENCE_S * k)
         faulted = relapse_at is not None and k == relapse_at
-        vib = 7.4 if faulted else 3.1
+        # small deterministic per-cycle variation — a real (healthy) sensor is never perfectly flat, so the
+        # Sensor Trust Gate would otherwise read constant values as a stuck/flatlined sensor.
+        vib = 7.4 if faulted else round(3.10 + ((k % 5) - 2) * 0.04, 3)     # ~3.02–3.18, < 4.0
         temp = max(63.0 - 0.9 * k, 24.0)         # declining toward ambient
-        ctime = 12.2 if not faulted else 14.8
-        scrap = 1.0 if not faulted else 6.0
-        prec = round(0.05 + 0.001 * k, 4)        # flat-ish precursor
+        ctime = 14.8 if faulted else round(12.20 + ((k % 3) - 1) * 0.06, 3)  # ~12.14–12.26
+        scrap = 6.0 if faulted else round(0.90 + (k % 2) * 0.20, 3)
+        prec = round(0.05 + 0.001 * k + ((k % 4) - 1.5) * 0.002, 4)         # flat-ish, with jitter
         for metric, value, unit, sid in (
             ("vibration_rms", vib, "mm/s", "VIB-L4-01"),
             ("temperature", round(temp, 1), "°C", "TMP-L4-01"),
