@@ -8,6 +8,7 @@ import { LoadingState } from "@/components/forge/states";
 import { CalibrationPanel } from "@/components/system/calibration-panel";
 import { SecurityPanel } from "@/components/system/security-panel";
 import { ShadowScorecard } from "@/components/system/shadow-scorecard";
+import { MachineArt, kindFor } from "@/components/forge/machine-art";
 
 function useHealth() {
   return useQuery({
@@ -154,7 +155,10 @@ export default function SystemPage() {
           </p>
           <div className="grid gap-2 sm:grid-cols-3">
             {catalog.profiles.map((p) => (
-              <div key={p.equipment_class} className="rounded-lg border border-line bg-surface-2 p-3">
+              <div key={p.equipment_class} className="alive overflow-hidden rounded-lg border border-line bg-surface-2 p-3">
+                <div className="mb-2 h-28 w-full overflow-hidden rounded-md border border-line bg-surface-1/60">
+                  <MachineArt kind={kindFor(`${p.equipment_class} ${p.machine_models.join(" ")} ${p.fault_codes.join(" ")}`)} className="h-full w-full p-1" />
+                </div>
                 <div className="text-sm font-medium text-ink">{p.label}</div>
                 <div className="mono mt-0.5 text-[11px] text-ink-mut">{p.machine_models.join(" · ")}</div>
                 <p className="mt-1.5 text-xs text-ink-mut">{p.summary}</p>

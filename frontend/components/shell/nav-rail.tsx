@@ -1,11 +1,12 @@
 "use client";
 
-import { Activity, BellRing, FileCheck2, FlaskConical, Gauge, Inbox, Lightbulb, ListChecks, ShieldCheck, Wrench } from "lucide-react";
+import { Activity, BellRing, FileCheck2, Gauge, Inbox, Lightbulb, ListChecks, ShieldCheck, Telescope, Wrench } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAlerts, useKnowledge, useMissions, useNotifications } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/forge/primitives";
+import { BrandMark } from "@/components/forge/brand-mark";
 
 export function NavRail() {
   const pathname = usePathname();
@@ -30,12 +31,13 @@ export function NavRail() {
     { href: m("contract"), icon: FileCheck2, label: "Approvals", match: () => false, badge: 0 },
     { href: "/knowledge", icon: Lightbulb, label: "Knowledge", match: (p: string) => p === "/knowledge", badge: pendingKnowledge },
     { href: "/system", icon: ShieldCheck, label: "System Health", match: (p: string) => p === "/system", badge: 0 },
+    { href: "/vision", icon: Telescope, label: "Future Vision", match: (p: string) => p === "/vision", badge: 0 },
   ];
 
   return (
     <nav aria-label="Primary" className="glass relative z-10 flex w-14 shrink-0 flex-col items-center gap-1 border-r border-line py-3">
-      <Link href="/" aria-label="Verified Recovery Agent home" className="sheen mb-3 grid h-9 w-9 place-items-center rounded-[10px] bg-brand-soft text-brand ring-1 ring-brand/30 shadow-[0_0_24px_-8px_var(--brand)]">
-        <FlaskConical className="h-4 w-4" />
+      <Link href="/" aria-label="Verified Recovery Agent home" className="sheen mb-3 grid h-9 w-9 place-items-center rounded-[10px] shadow-[0_0_22px_-10px_var(--agent)] transition-transform hover:scale-105">
+        <BrandMark size={30} animated />
       </Link>
       {items.map((it, i) => {
         const isActive = it.match(pathname);
