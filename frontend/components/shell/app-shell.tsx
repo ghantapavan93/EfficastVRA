@@ -8,6 +8,7 @@ import { NavRail } from "./nav-rail";
 import { ShellProvider, useShell } from "./shell-context";
 import { StatusStrip } from "./status-strip";
 import { DemoController } from "@/components/demo/demo-controller";
+import { AmbientField } from "@/components/forge/ambient-field";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -19,12 +20,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 function ShellInner({ children }: { children: React.ReactNode }) {
   return (
-    <div className="app-canvas flex h-screen overflow-hidden">
+    <div className="app-canvas relative isolate flex h-screen overflow-hidden">
+      <AmbientField />
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-surface-3 focus:px-3 focus:py-2 focus:text-sm">
         Skip to content
       </a>
       <NavRail />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col">
         <CommandBar />
         <main id="main" className="grid-motif flex-1 overflow-y-auto">
           {children}

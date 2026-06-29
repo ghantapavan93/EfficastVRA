@@ -33,7 +33,7 @@ export function NavRail() {
   ];
 
   return (
-    <nav aria-label="Primary" className="glass flex w-14 shrink-0 flex-col items-center gap-1 border-r border-line py-3">
+    <nav aria-label="Primary" className="glass relative z-10 flex w-14 shrink-0 flex-col items-center gap-1 border-r border-line py-3">
       <Link href="/" aria-label="Verified Recovery Agent home" className="sheen mb-3 grid h-9 w-9 place-items-center rounded-[10px] bg-brand-soft text-brand ring-1 ring-brand/30 shadow-[0_0_24px_-8px_var(--brand)]">
         <FlaskConical className="h-4 w-4" />
       </Link>
