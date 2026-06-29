@@ -652,6 +652,55 @@ export interface SensorTrustView {
   reason?: string;
 }
 
+export interface ShadowScenarioRow {
+  key: string;
+  title: string;
+  description: string;
+  expected: string;
+  proposed: string;
+  agree: boolean;
+  is_false_closure: boolean;
+  flagged: boolean;
+  abstained: boolean;
+  caught: boolean;
+  false_verification: boolean;
+  signature_rung: string | null;
+  alignment: number | null;
+  comparability: string | null;
+  sensor_trust: string | null;
+  observed_cycles: number;
+  reasons: string[];
+  anomalies: Record<string, number>;
+  events_total: number;
+  events_accepted: number;
+}
+export interface ShadowScorecardView {
+  generated_for: string;
+  summary: {
+    scenarios: number;
+    agreement_rate: number | null;
+    cohens_kappa: number | null;
+    writes_performed: number;
+    events_total: number;
+    events_accepted: number;
+  };
+  false_closure: {
+    positives: number;
+    caught: number;
+    missed_catastrophic: number;
+    recall: number | null;
+    precision: number | null;
+    tp: number;
+    fn: number;
+    fp: number;
+    note: string;
+  };
+  confusion_matrix: { classes: string[]; matrix: Record<string, Record<string, number>> };
+  reconciliation_totals: Record<string, number>;
+  scenarios: ShadowScenarioRow[];
+  basis: string;
+}
+
 export interface OeeFactor {
   key: string;
   label: string;

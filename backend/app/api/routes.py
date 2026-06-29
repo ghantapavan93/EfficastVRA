@@ -486,6 +486,17 @@ def integration(session: Session = Depends(get_session)) -> dict:
     return S.integration_view(session)
 
 
+@router.get("/integration/shadow")
+def shadow_scorecard() -> dict:
+    """Tier-0 Shadow Mode Scorecard — runs the deterministic cores over labeled contract-v0.1 event bundles,
+    compares each verdict to the outcome the plant published, and reports agreement, a confusion matrix,
+    Cohen's κ, and false-closure detection — writing NOTHING (writes_performed=0). The artifact an Efficast
+    evaluator would ask for before trusting (or connecting) anything."""
+    from app.services.shadow_scorecard import run_scorecard
+
+    return run_scorecard()
+
+
 @router.get("/incidents/{incident_id}/diagnosis")
 def diagnosis(incident_id: str, session: Session = Depends(get_session)) -> dict:
     inc = _incident(session, incident_id)

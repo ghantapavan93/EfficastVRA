@@ -117,6 +117,14 @@ export function useOeeRestoration(id: string, refetchInterval?: number) {
   });
 }
 
+export function useShadowScorecard(refetchInterval?: number) {
+  return useQuery({
+    queryKey: ["shadow-scorecard"],
+    queryFn: () => api.shadowScorecard(),
+    refetchInterval,
+  });
+}
+
 export function useComparability(id: string, refetchInterval?: number) {
   const { username } = useRole();
   return useQuery({

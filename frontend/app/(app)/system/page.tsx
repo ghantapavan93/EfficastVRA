@@ -7,6 +7,7 @@ import { Badge, SectionLabel } from "@/components/forge/primitives";
 import { LoadingState } from "@/components/forge/states";
 import { CalibrationPanel } from "@/components/system/calibration-panel";
 import { SecurityPanel } from "@/components/system/security-panel";
+import { ShadowScorecard } from "@/components/system/shadow-scorecard";
 
 function useHealth() {
   return useQuery({
@@ -230,6 +231,8 @@ export default function SystemPage() {
       )}
 
       <SecurityPanel />
+
+      <ShadowScorecard />
 
       {metrics && (
         <section className="mt-4 rounded-xl border border-line bg-surface-1 p-4">

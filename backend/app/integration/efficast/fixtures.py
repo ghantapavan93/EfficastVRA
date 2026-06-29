@@ -38,14 +38,20 @@ def _env(idem: str, cid: str, ts: datetime, *, data_quality: str = "OK", mapping
 
 
 def make_f27_bundle(*, cycles: int = 30, relapse_at: int | None = None, cid: str = "REPLAY-INC-1",
-                    sensor_status: str = "trusted") -> list[EfficastEvent]:
-    """A full verification window as enveloped events. Recovered by default; pass ``relapse_at`` to inject F27."""
+                    sensor_status: str = "trusted", product: str = "PKG-STD-12",
+                    actual: str | None = None) -> list[EfficastEvent]:
+    """A full verification window as enveloped events. Recovered by default; pass ``relapse_at`` to inject F27.
+
+    ``product`` overrides the order's product (a *different* product makes conditions NOT_COMPARABLE in the
+    Comparable-Conditions gate). ``actual`` overrides the published ground-truth decision_type (else: failed
+    when a relapse is injected, verified otherwise) — so a scenario can model what the *plant* actually did.
+    """
     out: list[EfficastEvent] = []
     out.append(AssetContext(**_env(f"{cid}-asset", cid, _BASE), machine_id=_MACHINE,
                             machine_model="CDX-220", component="drive-end bearing", line_id="L4",
                             criticality="high"))
     out.append(ProductionOrderContext(**_env(f"{cid}-order", cid, _BASE), order_id="PO-2841",
-                                      product="PKG-STD-12", machine_id=_MACHINE,
+                                      product=product, machine_id=_MACHINE,
                                       quantity_total=12000, quantity_remaining=8420))
     out.append(Intervention(**_env(f"{cid}-itv", cid, _BASE), intervention_id="ITV-2",
                             kind="bearing_replacement", component="BR-6205", status="completed",
@@ -84,6 +90,6 @@ def make_f27_bundle(*, cycles: int = 30, relapse_at: int | None = None, cid: str
                             result=("fail" if relapse_at else "pass"), metric="first_piece", spec="in-spec"))
     out.append(RecoveryDecisionPublication(
         **_env(f"{cid}-pub", cid, _BASE + timedelta(seconds=_CADENCE_S * (cycles + 2))),
-        incident_id=cid, decision_type=("failed" if relapse_at else "verified"),
+        incident_id=cid, decision_type=(actual or ("failed" if relapse_at else "verified")),
         summary=("F27 recurred during the window" if relapse_at else "30 stable comparable cycles; quality released")))
     return out

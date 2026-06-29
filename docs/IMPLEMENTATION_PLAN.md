@@ -327,3 +327,21 @@ metric: a closed work order ≠ restored OEE.
 - [x] **Evidence** — confirmed **"Efficast Edge"** device name (was UNVERIFIED → now OBSERVED) + OEE/mobile-
       report/advisory-AI messaging from their feed. Tests: `tests/test_oee_restoration.py` (3). Backend **218**
       green; frontend typecheck/lint/build + 24 tests green; verified live on the hero (baseline 95% → 98%, +3.1).
+
+**Phase 46 — Tier-0 Shadow Mode Scorecard (done).** The artifact an Efficast evaluator asks for first: *prove,
+on a stream with known outcomes, your verdicts agree with reality and you catch the false closures — without
+writing anything to our system.* Framed like a champion/challenger shadow deployment (a missed false-closure
+is the catastrophic error → false-closure **recall** is the headline metric).
+- [x] **Scenario library** — `integration/efficast/scenarios.py`: 7 labeled contract-v0.1 bundles spanning the
+      disposition space (genuine, two true relapses, a confound, an untrusted sensor, noisy/duplicate feed,
+      partial/suspect data). `fixtures.make_f27_bundle` gained `product` + `actual` overrides.
+- [x] **Scorecard** — `services/shadow_scorecard.py`: runs the SAME deterministic cores over the library and
+      reports **agreement rate, full confusion matrix, Cohen's κ, and false-closure detection** (recall +
+      the `missed_catastrophic` count that must be 0). `writes_performed = 0`, structurally. `GET
+      /api/integration/shadow`.
+- [x] **UI** — a System-page **Shadow Mode Scorecard**: "0 writes" trust badge, the safety stats, the
+      confusion matrix, per-scenario verdicts (plant→us + reasons + reconciliation anomalies). Honest by
+      design: agreement is **71% (κ 0.53)** — the two divergences are us being *more cautious than the plant*
+      (a confound + an untrusted sensor), with **100% relapse recall and 0 false verifications**.
+- [x] Tests: `tests/test_shadow_scorecard.py` (7) incl. the safety invariants. Backend **225** green; frontend
+      typecheck/lint/build + 24 green; verified live on `/system` (0 console errors).
