@@ -146,6 +146,27 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ───────────────────── CLOSING — OUR MISSION ───────────────────── */}
+      <section className="relative z-10 h-[68vh] min-h-[440px] overflow-hidden border-t border-line">
+        <div className="kenburns absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url(/factory-wide.png)" }} aria-hidden />
+        <div className="absolute inset-0" aria-hidden style={{ background: "linear-gradient(90deg, rgba(8,11,18,0.95) 0%, rgba(8,11,18,0.72) 42%, rgba(8,11,18,0.2) 76%, rgba(8,11,18,0.5) 100%)" }} />
+        <div className="absolute inset-0" aria-hidden style={{ background: "linear-gradient(0deg, var(--forge-bg) 1%, transparent 42%)" }} />
+        <motion.div {...reveal} className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-center px-6">
+          <div className="label tracking-[0.22em] text-verified">Our mission</div>
+          <h2 className="mt-2 max-w-xl text-3xl font-semibold leading-tight tracking-tight text-ink-hi md:text-5xl">
+            Make every intervention count.<br /><span className="text-grad">Ensure every recovery lasts.</span>
+          </h2>
+          <p className="mt-3 max-w-md text-sm leading-relaxed text-ink md:text-base">
+            A closed work order is not a recovered line. Verify it — with a contract the model can read but never override.
+          </p>
+          <div className="mt-7">
+            <Link href="/missions" className="glow-agent inline-flex h-11 items-center gap-2 rounded-[10px] bg-agent px-5 text-sm font-semibold text-black transition-transform hover:scale-[1.02]">
+              Open a live recovery mission <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </motion.div>
+      </section>
+
       <footer className="relative z-10 mx-auto max-w-7xl px-6 py-10 text-center">
         <div className="flex items-center justify-center gap-2"><BrandMark size={20} /><span className="text-sm font-medium text-ink">Verified Recovery</span></div>
         <p className="mt-3 text-[11px] text-ink-faint">
