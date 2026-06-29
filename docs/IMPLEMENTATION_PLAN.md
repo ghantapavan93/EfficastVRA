@@ -311,3 +311,19 @@ recommends a maintenance intervention from live snapshot + retrieved manuals + h
       caps/clamps sloppy output. Backend **215** green; frontend typecheck/lint/build + 24 tests green.
 - [ ] **[needs key]** a live end-to-end Claude diagnosis requires `VRA_REASONING=hosted` + an API key;
       the path is built + unit-proven keyless (injected model response), but a real call is unverified here.
+
+**Phase 45 — OEE-Restoration Verification (done).** Grounded in Efficast's actual LinkedIn (read logged-in
+2026-06-28): their product is OEE-centric (donut A×P×Q, mobile/WhatsApp reports) and their own messaging is
+our thesis — *"entender qué sucede cuando no miramos."* So we applied Verified-Recovery to *their* headline
+metric: a closed work order ≠ restored OEE.
+- [x] **Service** — `services/oee_restoration.py::assess_oee_restoration(...)`: recomputes
+      **Availability × Performance × Quality** from the verification-window `RecoveryObservation`s vs the
+      `Machine.baseline`; reports `restored`, the per-factor baseline→recovered deltas, the **lagging factor**
+      (closed-but-not-fully-restored signal), and a smoothed OEE trajectory. ADVISORY/READ-ONLY — the
+      deterministic evaluator + comparable-conditions ceiling still own closure. Baseline-availability /
+      world-class / tolerance constants are `PROTOTYPE_ASSUMPTION` (env-tunable).
+- [x] **API + UI** — `GET /api/incidents/{id}/oee-restoration`; a mission **OEE Restoration** tab with an OEE
+      donut (Efficast's visual language) + A·P·Q factor bars + recovery trajectory + restoration verdict.
+- [x] **Evidence** — confirmed **"Efficast Edge"** device name (was UNVERIFIED → now OBSERVED) + OEE/mobile-
+      report/advisory-AI messaging from their feed. Tests: `tests/test_oee_restoration.py` (3). Backend **218**
+      green; frontend typecheck/lint/build + 24 tests green; verified live on the hero (baseline 95% → 98%, +3.1).

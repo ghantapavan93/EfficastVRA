@@ -248,6 +248,17 @@ def closure_risk(incident_id: str, session: Session = Depends(get_session)) -> d
     return assess_false_closure_risk(session, inc)
 
 
+@router.get("/incidents/{incident_id}/oee-restoration")
+def oee_restoration(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """OEE-Restoration Verification — did the recovery restore OEE (Availability × Performance × Quality)
+    to baseline, or just close the order? Recomputes A·P·Q over the verification window vs the machine
+    baseline and flags which factor still lags. Read-only & advisory; the evaluator owns closure."""
+    from app.services.oee_restoration import assess_oee_restoration
+
+    inc = _incident(session, incident_id)
+    return assess_oee_restoration(session, inc)
+
+
 @router.get("/incidents/{incident_id}/disposition")
 def disposition(incident_id: str, session: Session = Depends(get_session)) -> dict:
     """Recovery Disposition — the four-outcome decision made explicit: VERIFIED / CONDITIONAL / FAILED /

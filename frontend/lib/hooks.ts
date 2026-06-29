@@ -108,6 +108,15 @@ export function useDisposition(id: string, refetchInterval?: number) {
   });
 }
 
+export function useOeeRestoration(id: string, refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({
+    queryKey: ["oee-restoration", id, username],
+    queryFn: () => api.oeeRestoration(id),
+    refetchInterval,
+  });
+}
+
 export function useComparability(id: string, refetchInterval?: number) {
   const { username } = useRole();
   return useQuery({

@@ -652,6 +652,37 @@ export interface SensorTrustView {
   reason?: string;
 }
 
+export interface OeeFactor {
+  key: string;
+  label: string;
+  baseline: number | null;
+  recovered: number | null;
+  restored: boolean;
+}
+export interface OeeBlock {
+  availability: number | null;
+  performance: number | null;
+  quality: number | null;
+  oee: number | null;
+  oee_pct?: number | null;
+  cycles?: number;
+}
+export interface OeeRestorationView {
+  available: boolean;
+  reason?: string;
+  restored?: boolean;
+  baseline_oee?: OeeBlock;
+  recovered_oee?: OeeBlock;
+  delta?: number | null;
+  delta_pct?: number | null;
+  lagging_factor?: string | null;
+  factors?: OeeFactor[];
+  trajectory?: { cycle: number; oee: number | null }[];
+  world_class_oee_pct?: number | null;
+  headline?: string;
+  basis?: string;
+}
+
 export interface LotAtRiskView {
   available: boolean;
   incident_id: string;
