@@ -11,7 +11,7 @@ from sqlmodel import Session, select
 from app.domain.contract import RecoveryContractSpec
 from app.domain.models import EvidenceRequirement, Incident, Intervention, RecoveryContract
 from app.rag import detect_conflicts, search
-from app.reasoning.base import ReasoningProvider
+from app.reasoning.base import Diagnosis, ReasoningProvider
 from app.seed.northstar import IDS
 from app.services.contract_templates import build_v1_spec, build_v2_spec
 from app.services.evaluator import EvaluationResult
@@ -75,6 +75,48 @@ class DeterministicReasoningProvider(ReasoningProvider):
         self, *, session: Session, query: str, machine_model: str, component: str
     ) -> dict:
         return detect_conflicts(session, query, machine_model=machine_model, component=component)
+
+    # 4b. Diagnose an alert (advisory) ──────────────────────────────────────────
+    def diagnose_alert(
+        self, *, incident: Incident, snapshot, signals: dict, retrieved: list[dict], history: dict
+    ) -> Diagnosis:
+        """Grounded, reproducible diagnosis of a drivetrain alert — the deterministic baseline the
+        hosted (Claude) provider falls back to. Identical content to the historical demo behaviour."""
+        days = signals.get("motor_replaced_days_ago", 9)
+        root_causes = [{
+            "cause": f"Coupling misalignment introduced during the motor replacement {days} days ago",
+            "likelihood": "primary",
+            "basis": "recent motor swap + rising vibration + F27 recurrence",
+        }]
+        if history.get("match"):
+            root_causes.append({
+                "cause": "Drive-end bearing degradation",
+                "likelihood": "latent",
+                "basis": f"historical {history.get('historical_incident_id')}: alignment did not hold and "
+                         "F27 recurred — root cause was the bearing",
+            })
+        return Diagnosis(
+            degradation_kind="mechanical_drivetrain_fault",
+            classification_rationale=(
+                "Rising vibration with a repeating fault and worsening cycle time/scrap points to the "
+                "motor-coupling-bearing drivetrain rather than a process or quality cause."),
+            root_causes=root_causes,
+            recommended_kind="coupling_alignment",
+            recommended_title="Coupling-alignment correction",
+            recommended_description=(
+                "Correct motor-drive coupling alignment disturbed during the recent motor replacement, "
+                "then verify recovery before closing."),
+            recommended_hypothesis=(
+                "Vibration/F27 caused by coupling misalignment introduced during motor replacement."),
+            contingency={"kind": "bearing_replacement",
+                         "note": "If F27 recurs in the verification window, replace drive-end bearing BR-6205."},
+            summary=(
+                "Most likely coupling misalignment from the recent motor replacement; verify a "
+                "coupling-alignment correction, watching for the bearing-degradation pattern from "
+                f"{history.get('historical_incident_id', 'history')}."),
+            diagnostic_confidence=0.7,
+            source="deterministic",
+        )
 
     # 5. Explain recovery failure ───────────────────────────────────────────────
     def explain_recovery_failure(

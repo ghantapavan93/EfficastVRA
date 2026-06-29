@@ -39,6 +39,12 @@ from app.services.evaluator import EvaluationResult
 
 MAX_REFLEXION_ITERS = 2
 
+# Maps a recommended maintenance intervention to the component it acts on (for proposal linkage).
+_COMPONENT_FOR_INTERVENTION = {
+    "coupling_alignment": "coupling", "bearing_replacement": "bearing",
+    "seal_replacement": "seal", "filter_replacement": "filter", "lubrication": "bearing",
+}
+
 
 @dataclass
 class DraftResult:
@@ -249,20 +255,30 @@ class RecoveryAgentGraph:
             contract_id=None,
         )
 
-        # 2 ── CLASSIFY the degradation ──
-        degradation = "mechanical_drivetrain_fault"
+        # ── Gather grounding (approved procedures + historical precedent), then DIAGNOSE. The diagnosis
+        #    is the agent's real analytical step: a hosted model reasons over the snapshot + manual
+        #    excerpts + history; the deterministic provider returns the same grounded baseline. Either way
+        #    it is *advisory* — a human accepts it, and the deterministic evaluator (never this graph)
+        #    decides whether recovery actually holds. ──
+        cites = search(self.session, "conveyor drive vibration alignment bearing fault corrective",
+                       machine_model=model, k=4)
+        hist = self.reasoning.compare_historical_interventions(session=self.session, incident=incident)
+        retrieved = [{"document_id": c.document_id, "section": c.section, "excerpt": c.content[:160]}
+                     for c in cites]
+        dx = self.reasoning.diagnose_alert(
+            incident=incident, snapshot=snap, signals=sig, retrieved=retrieved, history=hist)
+
+        # 2 ── CLASSIFY the degradation (from the diagnosis) ──
         self._rec(
             incident, "classify",
-            "Classified degradation as a mechanical drivetrain fault",
-            ("Rising vibration with a repeating fault and worsening cycle time/scrap points to the "
-             "motor-coupling-bearing drivetrain rather than a process or quality cause."),
-            outputs={"degradation_kind": degradation, "fault_code": incident.fault_code,
+            f"Classified degradation as {dx.degradation_kind.replace('_', ' ')}",
+            dx.classification_rationale,
+            outputs={"degradation_kind": dx.degradation_kind, "fault_code": incident.fault_code,
+                     "reasoning_source": dx.source,
                      "motor_replaced_days_ago": sig.get("motor_replaced_days_ago")},
         )
 
         # 3 ── RETRIEVE approved procedures (with the conflict guardrail) ──
-        cites = search(self.session, "conveyor drive vibration alignment bearing fault corrective",
-                       machine_model=model, k=4)
         self._rec(
             incident, "retrieve",
             f"Retrieved {len(cites)} approved drivetrain procedures",
@@ -271,52 +287,41 @@ class RecoveryAgentGraph:
                         "approval_status": c.approval_status, "excerpt": c.content[:160]} for c in cites],
         )
 
-        # 4 ── HYPOTHESIZE root causes against history ──
-        hist = self.reasoning.compare_historical_interventions(session=self.session, incident=incident)
-        root_causes = [
-            {"cause": "Coupling misalignment introduced during the motor replacement "
-                      f"{sig.get('motor_replaced_days_ago', 9)} days ago",
-             "likelihood": "primary",
-             "basis": "recent motor swap + rising vibration + F27 recurrence"},
-        ]
-        if hist.get("match"):
-            root_causes.append({
-                "cause": "Drive-end bearing degradation",
-                "likelihood": "latent",
-                "basis": f"historical {hist.get('historical_incident_id')}: alignment did not hold and "
-                         "F27 recurred — root cause was the bearing"})
+        # 4 ── HYPOTHESIZE root causes (from the diagnosis, against history) ──
         self._rec(
             incident, "hypothesize",
-            "Ranked root causes; alignment first, bearing as the latent risk",
-            hist.get("similarity", "Coupling misalignment is the most likely primary cause."),
-            outputs={"root_causes": root_causes},
+            ("Ranked root causes; primary cause first, with a latent risk flagged"
+             if any(r.get("likelihood") == "latent" for r in dx.root_causes)
+             else "Ranked root causes from live state, manuals, and precedent"),
+            hist.get("similarity") or dx.summary,
+            outputs={"root_causes": dx.root_causes, "reasoning_source": dx.source},
             citations=hist.get("citations", []),
         )
 
         # 5 ── PROPOSE the first intervention (the agent proposes; a human accepts) ──
-        coupling = self.session.exec(
-            select(Component).where(Component.machine_id == incident.machine_id)
-            .where(Component.kind == "coupling")
-        ).first()
+        comp_kind = _COMPONENT_FOR_INTERVENTION.get(dx.recommended_kind)
+        component = (
+            self.session.exec(
+                select(Component).where(Component.machine_id == incident.machine_id)
+                .where(Component.kind == comp_kind)
+            ).first() if comp_kind else None
+        )
         recommended = {
-            "kind": "coupling_alignment",
-            "title": "Coupling-alignment correction",
-            "description": ("Correct motor-drive coupling alignment disturbed during the recent motor "
-                            "replacement, then verify recovery before closing."),
-            "hypothesis": "Vibration/F27 caused by coupling misalignment introduced during motor replacement.",
-            "component_id": coupling.id if coupling else None,
+            "kind": dx.recommended_kind,
+            "title": dx.recommended_title,
+            "description": dx.recommended_description,
+            "hypothesis": dx.recommended_hypothesis,
+            "component_id": component.id if component else None,
         }
         diagnosis = {
-            "summary": ("Most likely coupling misalignment from the recent motor replacement; verify a "
-                        "coupling-alignment correction, watching for the bearing-degradation pattern from "
-                        f"{hist.get('historical_incident_id', 'history')}."),
-            "degradation_kind": degradation,
-            "root_causes": root_causes,
+            "summary": dx.summary,
+            "degradation_kind": dx.degradation_kind,
+            "root_causes": dx.root_causes,
             "recommended_intervention": recommended,
-            "contingency": {"kind": "bearing_replacement",
-                            "note": "If F27 recurs in the verification window, replace drive-end bearing BR-6205."},
+            "contingency": dx.contingency,
             "citations": [{"document_id": c.document_id, "section": c.section} for c in cites],
-            "diagnostic_confidence": 0.7,
+            "diagnostic_confidence": dx.diagnostic_confidence,
+            "reasoning_source": dx.source,
         }
         self._rec(
             incident, "propose",
@@ -324,8 +329,9 @@ class RecoveryAgentGraph:
             ("The agent proposes the intervention and the verification plan; it does not perform "
              "physical work or accept its own diagnosis. A supervisor must accept before the "
              "intervention is recorded."),
-            outputs={"recommended_intervention": recommended, "contingency": diagnosis["contingency"],
-                     "diagnostic_confidence": 0.7, "next": "INTERVENTION_PROPOSED", "owner": "supervisor"},
+            outputs={"recommended_intervention": recommended, "contingency": dx.contingency,
+                     "diagnostic_confidence": dx.diagnostic_confidence, "reasoning_source": dx.source,
+                     "next": "INTERVENTION_PROPOSED", "owner": "supervisor"},
         )
         return diagnosis
 

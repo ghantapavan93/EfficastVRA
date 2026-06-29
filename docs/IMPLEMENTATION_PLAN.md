@@ -291,3 +291,23 @@ agent's authority (no new write path, no machine control; rejection + detection 
       T13–T17. Tests: `tests/test_security.py` (11). Backend **209** green.
 - [ ] **[infra]** distributed rate limiting (Redis), vault/KMS-sourced signing key + rotation, SIEM shipping,
       TLS/HSTS — deployment-stage, deferred honestly.
+
+**Phase 44 — Make the agent reasoning real (done).** The agent's diagnosis was hardcoded in `graph.py`
+(scripted, not reasoned); even the hosted provider only rewrote two narrative sentences. Now the agent
+genuinely *reasons*: a new advisory `diagnose_alert` capability classifies the fault + ranks root causes +
+recommends a maintenance intervention from live snapshot + retrieved manuals + history.
+- [x] **Capability** — `ReasoningProvider.diagnose_alert(...) -> Diagnosis` (`reasoning/base.py`): safe
+      model-free default; `DeterministicReasoningProvider` overrides with the exact prior demo content (so
+      the keyless demo is byte-identical); `HostedReasoningProvider` overrides with a **real Claude call**
+      (structured JSON), strictly validated and **bound to `SAFE_INTERVENTION_KINDS`** — a model can never
+      surface a machine-control action; any parse/validation/network failure falls back to deterministic.
+- [x] **Wiring** — `graph.triage()` now calls `diagnose_alert` and narrates classify/hypothesize/propose
+      from the result (no more hardcoded "coupling misalignment"); each step records its `reasoning_source`
+      (`deterministic` | `hosted:<model>`). The deterministic evaluator still owns closure — unchanged.
+- [x] **Visibility** — the agent-reasoning trace view shows a per-step "reasoned by" badge (✨ model when
+      hosted, `deterministic` otherwise); `.env.example` documents how to enable live Claude reasoning.
+- [x] Tests: `tests/test_agent_reasoning.py` (6) — deterministic reproduces the demo; hosted uses model
+      output; **rejects a machine-control recommendation** (safety); falls back on failure/malformed JSON;
+      caps/clamps sloppy output. Backend **215** green; frontend typecheck/lint/build + 24 tests green.
+- [ ] **[needs key]** a live end-to-end Claude diagnosis requires `VRA_REASONING=hosted` + an API key;
+      the path is built + unit-proven keyless (injected model response), but a real call is unverified here.

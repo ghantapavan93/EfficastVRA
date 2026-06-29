@@ -11,6 +11,7 @@ import {
   PencilRuler,
   Radar,
   ScanSearch,
+  Sparkles,
   Waypoints,
 } from "lucide-react";
 import { useReasoning } from "@/lib/hooks";
@@ -31,6 +32,21 @@ const NODE_META: Record<ReasoningNode, { icon: React.ComponentType<{ className?:
   observe: { icon: Waypoints, tone: "pending" },
   reflect: { icon: AlertTriangle, tone: "failure" },
 };
+
+/** Shows which reasoner produced a step: a live hosted model (e.g. Claude) vs the deterministic
+ *  baseline. Makes "the AI is actually reasoning here" visible, and honest when it isn't. */
+function ReasonedBy({ source }: { source: string }) {
+  const hosted = source.startsWith("hosted:");
+  const model = hosted ? source.slice("hosted:".length) : "deterministic";
+  return (
+    <span title={hosted ? `Reasoned live by ${model}` : "Deterministic baseline (set VRA_REASONING=hosted + key for live model reasoning)"}>
+      <Badge tone={hosted ? "agent" : "steel"}>
+        {hosted && <Sparkles className="h-3 w-3" aria-hidden />}
+        {hosted ? model : "deterministic"}
+      </Badge>
+    </span>
+  );
+}
 
 function confidenceTone(c: number): Tone {
   if (c >= 0.95) return "verified";
@@ -211,6 +227,9 @@ function ReasoningRow({ step, last }: { step: ReasoningStep; last: boolean }) {
                 {step.node_label}
               </span>
               {step.revision > 0 && <Chip>revision {step.revision}</Chip>}
+              {typeof step.outputs?.reasoning_source === "string" && (
+                <ReasonedBy source={step.outputs.reasoning_source as string} />
+              )}
               {step.confidence != null && (
                 <Badge tone={confidenceTone(step.confidence)}>{Math.round(step.confidence * 100)}%</Badge>
               )}
