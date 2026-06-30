@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, BellRing, FileCheck2, Gauge, Inbox, Lightbulb, ListChecks, ShieldCheck, Telescope, Wrench } from "lucide-react";
+import { Activity, BellRing, FileCheck2, FileUp, Gauge, Inbox, Lightbulb, ListChecks, ShieldCheck, Telescope, Wrench } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAlerts, useKnowledge, useMissions, useNotifications } from "@/lib/hooks";
@@ -23,6 +23,7 @@ export function NavRail() {
 
   const items = [
     { href: "/missions", icon: Gauge, label: "Missions", match: (p: string) => p === "/missions", badge: 0 },
+    { href: "/intake", icon: FileUp, label: "Create Mission · Upload data", match: (p: string) => p === "/intake", badge: 0 },
     { href: "/alerts", icon: BellRing, label: "MAIA Alerts", match: (p: string) => p === "/alerts", badge: openAlerts },
     { href: primary ? `/missions/${primary}` : "/missions", icon: Activity, label: "Active Recovery", match: (p: string) => p.startsWith("/missions/"), badge: 0 },
     { href: "/inbox", icon: Inbox, label: "Notifications", match: (p: string) => p === "/inbox", badge: unread },

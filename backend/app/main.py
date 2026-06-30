@@ -137,8 +137,10 @@ def health() -> dict:
 
 
 from app.api.routes import router as api_router  # noqa: E402
+from app.api.intake_routes import router as intake_router  # noqa: E402
 
 app.include_router(api_router)
+app.include_router(intake_router)
 
 if _settings.demo_mode:
     from app.api.demo_routes import router as demo_router  # noqa: E402

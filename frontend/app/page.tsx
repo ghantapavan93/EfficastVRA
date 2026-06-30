@@ -106,9 +106,12 @@ export default function Landing() {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.7, duration: 0.6 }}
           className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link href="/missions" className="glow-agent inline-flex h-11 items-center gap-2 rounded-[10px] bg-agent px-5 text-sm font-semibold text-black transition-transform hover:scale-[1.02]">
-            Open live recovery mission <ArrowRight className="h-4 w-4" />
+            Run the Northstar mission <ArrowRight className="h-4 w-4" />
           </Link>
-          <Link href="/vision" className="inline-flex h-11 items-center rounded-[10px] border border-line-strong bg-surface-1/40 px-5 text-sm text-ink backdrop-blur hover:bg-surface-2">
+          <Link href="/intake" className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-line-strong bg-surface-1/40 px-5 text-sm text-ink backdrop-blur hover:bg-surface-2">
+            Upload your plant data
+          </Link>
+          <Link href="/vision" className="inline-flex h-11 items-center rounded-[10px] px-3 text-sm text-ink-mut hover:text-ink">
             See the future vision
           </Link>
         </motion.div>
