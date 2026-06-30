@@ -166,6 +166,16 @@ export function useTwin(id: string, refetchInterval?: number) {
   return useQuery({ queryKey: ["twin", id, username], queryFn: () => api.twin(id), refetchInterval });
 }
 
+export function useShiftHandoffPreview(refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({ queryKey: ["handoff-preview", username], queryFn: () => api.shiftHandoffPreview(), refetchInterval });
+}
+
+export function useShiftHandoffs(refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({ queryKey: ["handoffs", username], queryFn: () => api.shiftHandoffs(), refetchInterval });
+}
+
 export function useAssets(refetchInterval?: number) {
   const { username } = useRole();
   return useQuery({ queryKey: ["assets", username], queryFn: () => api.assets(), refetchInterval });

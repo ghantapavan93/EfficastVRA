@@ -310,6 +310,24 @@ def mission_spine(incident_id: str, session: Session = Depends(get_session)) -> 
     return out
 
 
+class AskBody(BaseModel):
+    question: str
+    role: Optional[str] = None  # defaults to the caller's role
+
+
+@router.post("/incidents/{incident_id}/ask")
+def ask_mission(incident_id: str, body: AskBody, session: Session = Depends(get_session),
+                principal: Principal = Depends(get_principal)) -> dict:
+    """Conversational, role-adaptive Mission Q&A. The agent explains the mission grounded in the
+    deterministic facts (spine + disposition + evaluator) and cites them; it decides nothing."""
+    from app.services.mission_qa import answer
+
+    inc = _incident(session, incident_id)
+    out = answer(session, inc, body.question, body.role or principal.role.value)
+    session.commit()
+    return out
+
+
 @router.get("/incidents/{incident_id}/twin")
 def recovery_twin(incident_id: str, session: Session = Depends(get_session)) -> dict:
     """Recovery Twin — the recovery trajectory cycle by cycle (vibration/temperature/fault + the recomputed
@@ -337,6 +355,54 @@ def recovery_passport(machine_id: str, session: Session = Depends(get_session)) 
     out = build_passport(session, machine_id)
     if not out.get("available"):
         raise HTTPException(404, out.get("reason", "asset not found"))
+    return out
+
+
+@router.get("/shift-handoff/preview")
+def shift_handoff_preview(session: Session = Depends(get_session),
+                          principal: Principal = Depends(get_principal)) -> dict:
+    """The live state that would be handed off right now — open missions with who's next / what's blocking."""
+    from app.services.shift_handoff import build_preview
+
+    return build_preview(session, principal.plant_id)
+
+
+class HandoffBody(BaseModel):
+    from_shift: str = ""
+    to_shift: str = ""
+    notes: str = ""
+
+
+@router.post("/shift-handoff")
+def create_shift_handoff(body: HandoffBody, session: Session = Depends(get_session),
+                         principal: Principal = Depends(get_principal)) -> dict:
+    """Freeze the current open-mission state into a durable handoff record (documentation; no state change)."""
+    from app.services.shift_handoff import create_handoff
+
+    out = create_handoff(session, principal, from_shift=body.from_shift, to_shift=body.to_shift, notes=body.notes)
+    session.commit()
+    return out
+
+
+@router.get("/shift-handoffs")
+def shift_handoffs(session: Session = Depends(get_session),
+                   principal: Principal = Depends(get_principal)) -> dict:
+    """Recent shift handoffs for this plant (most recent first)."""
+    from app.services.shift_handoff import list_handoffs
+
+    return list_handoffs(session, principal.plant_id)
+
+
+@router.post("/shift-handoffs/{handoff_id}/ack")
+def acknowledge_shift_handoff(handoff_id: str, session: Session = Depends(get_session),
+                              principal: Principal = Depends(get_principal)) -> dict:
+    """The incoming shift acknowledges receipt of a handoff."""
+    from app.services.shift_handoff import acknowledge
+
+    out = acknowledge(session, handoff_id, principal)
+    if out is None:
+        raise HTTPException(404, "handoff not found")
+    session.commit()
     return out
 
 

@@ -19,6 +19,7 @@ import { DecisionRoom } from "@/components/mission/decision-room";
 import { MissionSpine } from "@/components/mission/mission-spine";
 import { UploadedVerification } from "@/components/mission/uploaded-verification";
 import { RecoveryTwin } from "@/components/mission/recovery-twin";
+import { MissionQA } from "@/components/mission/mission-qa";
 import { EvidencePlanner } from "@/components/mission/evidence-planner";
 import { RecoveryDebtPanel } from "@/components/mission/recovery-debt-panel";
 import { SensorTrustPanel } from "@/components/mission/sensor-trust-panel";
@@ -58,6 +59,7 @@ function MissionDetail({ id }: { id: string }) {
 
   const tabs = [
     { key: "overview", label: "Overview" },
+    { key: "ask", label: "Ask the agent" },
     ...(m.origin_alert_id ? [{ key: "diagnosis", label: "Agent Diagnosis" }] : []),
     { key: "reasoning", label: "Agent Reasoning" },
     { key: "decision", label: "Decision Intelligence" },
@@ -120,6 +122,7 @@ function MissionDetail({ id }: { id: string }) {
 
       <div key={tab} className="tab-in mx-auto max-w-6xl px-6 py-6">
         {tab === "overview" && <Overview m={m} />}
+        {tab === "ask" && <MissionQA incidentId={id} />}
         {tab === "diagnosis" && <DiagnosisPanel incidentId={id} />}
         {tab === "reasoning" && <AgentReasoning incidentId={id} />}
         {tab === "decision" && <DecisionPanel incidentId={id} />}

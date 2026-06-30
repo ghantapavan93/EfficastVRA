@@ -380,6 +380,27 @@ class MappingProfile(Base, table=True):
     mappings: list = Field(default_factory=list, sa_type=JSON)
 
 
+class ShiftHandoff(Base, table=True):
+    """A persisted shift handoff: a point-in-time snapshot of every open mission's state — who must act
+    next, what's blocking, whether it's reopened — so the incoming shift inherits the full picture instead
+    of re-deriving it. Documentation, not a recovery side-effect: it changes no mission state and touches
+    no machine. The snapshot is frozen at creation; the next shift acknowledges receipt."""
+
+    id: str = Field(default_factory=id_factory("HOFF"), primary_key=True)
+    tenant_id: str = Field(index=True)
+    plant_id: str = Field(index=True)
+    from_shift: str = ""
+    to_shift: str = ""
+    created_by: str = ""
+    created_role: Role = Role.SUPERVISOR
+    headline: str = ""
+    notes: str = ""
+    open_missions: list = Field(default_factory=list, sa_type=JSON)  # frozen per-mission snapshots
+    stats: dict = Field(default_factory=dict, sa_type=JSON)
+    acknowledged_by: Optional[str] = None
+    acknowledged_at: Optional[datetime] = None
+
+
 class RecoveryContract(Base, table=True):
     """The product's core primitive. Drafted/explained by reasoning; evaluated by deterministic code.
 

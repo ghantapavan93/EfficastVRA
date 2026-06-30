@@ -70,6 +70,67 @@ export interface MissionDetail extends MissionSummary {
   telemetry_rows: number;
 }
 
+export interface MissionSnapshot {
+  id: string;
+  title: string;
+  fault_code: string | null;
+  state: string;
+  stage: string | null;
+  who_next: string | null;
+  what_blocks: string | null;
+  reopened_count: number;
+  outcome: string | null;
+}
+
+export interface ShiftHandoffStats {
+  open_missions: number;
+  reopened: number;
+  awaiting_human: number;
+  monitoring: number;
+}
+
+export interface ShiftHandoffPreview {
+  open_missions: MissionSnapshot[];
+  stats: ShiftHandoffStats;
+  headline: string;
+  basis: string;
+}
+
+export interface ShiftHandoffView {
+  id: string;
+  from_shift: string;
+  to_shift: string;
+  created_by: string;
+  created_role: string;
+  created_at: string | null;
+  headline: string;
+  notes: string;
+  open_missions: MissionSnapshot[];
+  stats: ShiftHandoffStats;
+  acknowledged_by: string | null;
+  acknowledged_at: string | null;
+}
+
+export interface ShiftHandoffsList {
+  handoffs: ShiftHandoffView[];
+}
+
+export interface AskCitation {
+  surface: string;
+  path: string;
+}
+
+export interface AskResult {
+  question: string;
+  intent: string;
+  role: string;
+  answer: string;
+  citations: AskCitation[];
+  suggestions: string[];
+  grounded_in: string;
+  basis: string;
+}
+
 export interface TwinFrame {
   index: number;
   window: number;

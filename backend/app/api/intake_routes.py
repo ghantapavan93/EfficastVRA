@@ -7,6 +7,8 @@ this is the front of the mission funnel. Confirmed mappings + a started mission 
 
 from __future__ import annotations
 
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlmodel import Session
@@ -21,13 +23,33 @@ router = APIRouter(prefix="/api/intake", tags=["intake"])
 class AnalyzeBody(BaseModel):
     filename: str = "upload.csv"
     content: str = Field(..., description="Raw file text — CSV, JSON array, or JSONL.")
+    profile_id: Optional[str] = Field(default=None, description="Reuse a saved Mapping Profile instead of proposing.")
+
+
+@router.get("/profiles")
+def profiles(session: Session = Depends(get_session)) -> dict:
+    """Saved Plant Data Mapping Profiles — pick one to reuse a confirmed mapping on a similar export."""
+    from app.services.intake_mission import list_profiles
+
+    return list_profiles(session)
+
+
+def _saved(session: Session, profile_id: Optional[str]) -> Optional[list[dict]]:
+    if not profile_id:
+        return None
+    from app.services.intake_mission import get_profile_mappings
+
+    saved = get_profile_mappings(session, profile_id)
+    if saved is None:
+        raise HTTPException(404, "mapping profile not found")
+    return saved
 
 
 @router.post("/analyze")
-def analyze(body: AnalyzeBody) -> dict:
-    """Analyze an uploaded plant export → proposed mapping + Data Readiness Report + incident reconstruction.
-    The AI/heuristic proposes; the user confirms the mapping before a mission is created."""
-    return analyze_upload(body.filename, body.content)
+def analyze(body: AnalyzeBody, session: Session = Depends(get_session)) -> dict:
+    """Analyze an uploaded plant export → mapping + Data Readiness Report + incident reconstruction.
+    The AI/heuristic proposes (or a saved profile is reused); the user confirms before a mission is created."""
+    return analyze_upload(body.filename, body.content, saved_profile=_saved(session, body.profile_id))
 
 
 @router.post("/create-mission")
@@ -37,7 +59,8 @@ def create_mission(body: AnalyzeBody, session: Session = Depends(get_session)) -
     The new mission then flows through the spine + deterministic surfaces (it has no contract/verdict yet)."""
     from app.services.intake_mission import create_mission_from_upload
 
-    out = create_mission_from_upload(session, body.filename, body.content)
+    out = create_mission_from_upload(session, body.filename, body.content,
+                                     saved_profile=_saved(session, body.profile_id))
     if out.get("created"):
         session.commit()
     return out

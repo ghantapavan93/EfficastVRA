@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowRight, BrainCircuit, CheckCircle2, FileUp, FlaskConical, HelpCircle, Loader2, MinusCircle, Rocket, Upload } from "lucide-react";
 import { Badge, SectionLabel } from "@/components/forge/primitives";
@@ -22,10 +22,12 @@ const KIND_META: Record<string, { tone: Tone; label: string }> = {
   contradiction: { tone: "warning", label: "Contradiction" },
 };
 
-async function analyze(filename: string, content: string): Promise<Analysis> {
+interface Profile { id: string; name: string; source_filename: string; mapped_columns: number }
+
+async function analyze(filename: string, content: string, profileId: string): Promise<Analysis> {
   const r = await fetch("/api/intake/analyze", {
     method: "POST", headers: { "Content-Type": "application/json", "X-VRA-User": "s.vega" },
-    body: JSON.stringify({ filename, content }),
+    body: JSON.stringify({ filename, content, profile_id: profileId || undefined }),
   });
   return r.json();
 }
@@ -37,10 +39,17 @@ export default function IntakePage() {
   const [data, setData] = useState<Analysis | null>(null);
   const [src, setSrc] = useState<{ filename: string; content: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [profileId, setProfileId] = useState<string>("");
+
+  useEffect(() => {
+    fetch("/api/intake/profiles", { headers: { "X-VRA-User": "s.vega" } })
+      .then((r) => r.json()).then((d) => setProfiles(d.profiles ?? [])).catch(() => {});
+  }, [data]);
 
   const run = async (filename: string, content: string) => {
     setBusy(true); setErr(null); setSrc({ filename, content });
-    try { setData(await analyze(filename, content)); }
+    try { setData(await analyze(filename, content, profileId)); }
     catch (e) { setErr(String(e)); }
     finally { setBusy(false); }
   };
@@ -51,7 +60,7 @@ export default function IntakePage() {
     try {
       const r = await fetch("/api/intake/create-mission", {
         method: "POST", headers: { "Content-Type": "application/json", "X-VRA-User": "s.vega" },
-        body: JSON.stringify(src),
+        body: JSON.stringify({ ...src, profile_id: profileId || undefined }),
       });
       const out = await r.json();
       if (out.created && out.incident_id) router.push(`/missions/${out.incident_id}`);
@@ -101,6 +110,19 @@ export default function IntakePage() {
             <span className="text-[11px] text-ink-mut">A deliberately messy real-shaped export — try the flow instantly.</span>
           </button>
         </div>
+        {profiles.length > 0 && (
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-4">
+            <span className="label">Reuse a saved mapping</span>
+            <select value={profileId} onChange={(e) => setProfileId(e.target.value)}
+              className="h-9 rounded-[10px] border border-line bg-surface-2 px-3 text-xs text-ink outline-none focus:border-agent/50">
+              <option value="">Propose a fresh mapping</option>
+              {profiles.map((p) => (
+                <option key={p.id} value={p.id}>{p.name} · {p.mapped_columns} cols ({p.source_filename})</option>
+              ))}
+            </select>
+            {profileId && <span className="text-[11px] text-verified">a confirmed mapping will be reused</span>}
+          </div>
+        )}
         {busy && <div className="mt-4 flex items-center gap-2 text-sm text-ink-mut"><Loader2 className="h-4 w-4 animate-spin" /> Analyzing — detecting schema, proposing mapping…</div>}
         {err && <div className="mt-4 text-sm text-failure">Could not analyze: {err}</div>}
       </section>

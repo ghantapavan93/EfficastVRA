@@ -37,6 +37,10 @@ import type {
   TwinView,
   AssetsView,
   PassportView,
+  AskResult,
+  ShiftHandoffPreview,
+  ShiftHandoffView,
+  ShiftHandoffsList,
 } from "./types";
 
 // The active principal's username, sent as X-VRA-User. The role provider keeps this in sync.
@@ -126,6 +130,14 @@ export const api = {
   twin: (id: string) => req<TwinView>(`/api/incidents/${id}/twin`),
   assets: () => req<AssetsView>(`/api/assets`),
   passport: (machineId: string) => req<PassportView>(`/api/assets/${machineId}/passport`),
+  ask: (id: string, body: { question: string; role?: string }) =>
+    req<AskResult>(`/api/incidents/${id}/ask`, { method: "POST", body: JSON.stringify(body) }),
+  shiftHandoffPreview: () => req<ShiftHandoffPreview>(`/api/shift-handoff/preview`),
+  shiftHandoffs: () => req<ShiftHandoffsList>(`/api/shift-handoffs`),
+  createShiftHandoff: (body: { from_shift?: string; to_shift?: string; notes?: string }) =>
+    req<ShiftHandoffView>(`/api/shift-handoff`, { method: "POST", body: JSON.stringify(body) }),
+  ackShiftHandoff: (id: string) =>
+    req<ShiftHandoffView>(`/api/shift-handoffs/${id}/ack`, { method: "POST" }),
   disposition: (id: string) => req<DispositionView>(`/api/incidents/${id}/disposition`),
   comparability: (id: string) => req<ComparabilityView>(`/api/incidents/${id}/comparability`),
   recoveryDebt: (id: string) => req<RecoveryDebtView>(`/api/incidents/${id}/recovery-debt`),

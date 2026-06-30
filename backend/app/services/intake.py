@@ -398,11 +398,35 @@ def build_telemetry_series(table: ParsedTable, mappings: list[ColumnMapping], *,
     return series
 
 
+def apply_saved_mapping(table: ParsedTable, saved: list[dict]) -> list[ColumnMapping]:
+    """Reuse a saved Mapping Profile: for each column the profile already mapped, apply that target
+    (confidence 1.0 — a human confirmed it); for columns the profile didn't cover, fall back to the
+    heuristic proposal. This is what makes a confirmed mapping pay off on the next, similar export."""
+    by_col = {m["column"]: m for m in saved if m.get("target_event")}
+    proposed = {m.column: m for m in propose_mapping(table)}
+    out: list[ColumnMapping] = []
+    for col in table.columns:
+        base = proposed.get(col)
+        sm = by_col.get(col)
+        if sm:
+            out.append(ColumnMapping(
+                column=col, target_event=sm["target_event"], target_field=sm["target_field"],
+                confidence=1.0, kind=base.kind if base else sm.get("kind", "category"),
+                samples=base.samples if base else [], missing_pct=base.missing_pct if base else 0.0,
+                note="reused from saved profile"))
+        elif base is not None:
+            out.append(base)
+        else:
+            out.append(ColumnMapping(col, None, None, 0.0, "category", [], 0.0, "unmapped"))
+    return out
+
+
 # ── orchestration ───────────────────────────────────────────────────────────────────────────────────────
-def analyze_upload(filename: str, content: str) -> dict:
-    """One call: parse → propose mapping → readiness → reconstruct. The user confirms the mapping next."""
+def analyze_upload(filename: str, content: str, *, saved_profile: list[dict] | None = None) -> dict:
+    """One call: parse → map → readiness → reconstruct. The mapping is the heuristic proposal, or a reused
+    saved profile when one is supplied. The user confirms the mapping next."""
     table = parse_content(filename, content)
-    mappings = propose_mapping(table)
+    mappings = apply_saved_mapping(table, saved_profile) if saved_profile else propose_mapping(table)
     readiness = assess_readiness(table, mappings)
     reconstruction = reconstruct(table, mappings)
     mapped_n = sum(1 for m in mappings if m.target_event)
@@ -415,6 +439,8 @@ def analyze_upload(filename: str, content: str) -> dict:
         "mappings": [vars(m) for m in mappings],
         "readiness": vars(readiness),
         "reconstruction": reconstruction,
-        "basis": ("AI/heuristic proposes the mapping; a human confirms it. Readiness + reconstruction are "
-                  "deterministic and advisory — the qualification verdict is decided downstream, never here."),
+        "profile_applied": bool(saved_profile),
+        "basis": ("AI/heuristic proposes the mapping (or a saved profile is reused); a human confirms it. "
+                  "Readiness + reconstruction are deterministic and advisory — the qualification verdict is "
+                  "decided downstream, never here."),
     }

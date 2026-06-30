@@ -160,3 +160,14 @@ deterministic evaluator. Bounded honestly:
   is terminal; a real deployment would give each uploaded asset its own `Machine` identity. `PROTOTYPE_ASSUMPTION`.
 - **Telemetry series cap** of 5000 cycles per upload (`services/intake.build_telemetry_series`) — a prototype
   guard, not a measured limit.
+
+## Differentiator implementation notes (2026-06-30)
+- **Conversational Mission Q&A** (`services/mission_qa.py`) is a **deterministic, intent-matched** answerer
+  grounded in the spine + disposition + evaluator, with citations — *not* a free-form LLM chat. This is a
+  deliberate integrity choice (reproducible, no hallucination, every answer traceable). A hosted provider
+  could enrich free-text questions later, bounded the same way as `reasoning/hosted.py` (explain-only, never
+  decides). The agent **never** decides closure or acts on the machine.
+- **Shift handoff** (`services/shift_handoff.py`) persists a snapshot + an audit entry directly (it is
+  documentation, not a recovery side-effect), consistent with how upload-ingestion records are written.
+- **Mapping-profile reuse** applies a saved profile's confirmed column targets and falls back to the
+  heuristic for any column the profile didn't cover; a human still confirms before a mission is created.

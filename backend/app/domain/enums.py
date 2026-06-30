@@ -217,3 +217,4 @@ class AuditEventType(str, Enum):
     CIRCUIT_OPENED = "CIRCUIT_OPENED"
     OUTBOX_PUBLISHED = "OUTBOX_PUBLISHED"
     DECISION_PUBLISHED = "DECISION_PUBLISHED"
+    SHIFT_HANDOFF = "SHIFT_HANDOFF"  # a shift handoff record was created / acknowledged

@@ -21,7 +21,13 @@ from app.config import get_settings
 from app.domain.base import utcnow
 from app.domain.enums import AuditEventType, Role, Severity, WorkflowState
 from app.domain.models import Incident, Machine, MappingProfile
-from app.services.intake import analyze_upload, build_telemetry_series, parse_content, propose_mapping
+from app.services.intake import (
+    analyze_upload,
+    apply_saved_mapping,
+    build_telemetry_series,
+    parse_content,
+    propose_mapping,
+)
 from app.workflow.audit import record_audit
 
 _settings = get_settings()
@@ -47,10 +53,11 @@ def _first_fault(rows: list[dict], col: str | None) -> str | None:
     return None
 
 
-def create_mission_from_upload(session: Session, filename: str, content: str) -> dict:
-    analysis = analyze_upload(filename, content)
+def create_mission_from_upload(session: Session, filename: str, content: str,
+                               *, saved_profile: list[dict] | None = None) -> dict:
+    analysis = analyze_upload(filename, content, saved_profile=saved_profile)
     table = parse_content(filename, content)
-    mappings = propose_mapping(table)
+    mappings = apply_saved_mapping(table, saved_profile) if saved_profile else propose_mapping(table)
     idx = {(m.target_event, m.target_field): m.column for m in mappings if m.target_event}
 
     machine_code = _first_value(table.rows, idx.get(("asset", "source_id")))
@@ -109,4 +116,24 @@ def create_mission_from_upload(session: Session, filename: str, content: str) ->
         "mapped_columns": analysis["mapped_count"],
         "row_count": analysis["row_count"],
         "telemetry_rows": len(telemetry_series),
+        "profile_applied": bool(saved_profile),
     }
+
+
+def list_profiles(session: Session, plant_id: str | None = None, *, limit: int = 25) -> dict:
+    """Saved Plant Data Mapping Profiles — so the next, similar export reuses a confirmed mapping."""
+    rows = session.exec(
+        select(MappingProfile).order_by(MappingProfile.created_at.desc())  # type: ignore[attr-defined]
+    ).all()
+    if plant_id:
+        rows = [r for r in rows if r.plant_id == plant_id]
+    return {"profiles": [{
+        "id": r.id, "name": r.name, "plant_id": r.plant_id, "source_filename": r.source_filename,
+        "profile_version": r.profile_version, "created_at": r.created_at.isoformat(),
+        "mapped_columns": sum(1 for m in r.mappings if m.get("target_event")),
+    } for r in rows[:limit]]}
+
+
+def get_profile_mappings(session: Session, profile_id: str) -> list[dict] | None:
+    p = session.get(MappingProfile, profile_id)
+    return p.mappings if p is not None else None
