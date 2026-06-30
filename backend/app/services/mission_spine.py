@@ -24,8 +24,12 @@ STAGES = ["Intake", "Reconstruction", "Recovery Contract", "Evidence Plan",
 
 
 def assess_mission(session: Session, incident: Incident) -> dict:
-    has_intervention = session.exec(
-        select(Intervention).where(Intervention.incident_id == incident.id)).first() is not None
+    # Reconstruction is "done" once an intervention is diagnosed OR the incident was reconstructed from an
+    # uploaded export (the intake analysis is stored on the incident).
+    has_intervention = (
+        session.exec(select(Intervention).where(Intervention.incident_id == incident.id)).first() is not None
+        or bool(getattr(incident, "intake", None))
+    )
     contract = (session.get(RecoveryContract, incident.current_contract_id)
                 if incident.current_contract_id else None)
     has_contract = contract is not None

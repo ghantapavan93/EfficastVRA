@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, ArrowRight, BrainCircuit, CheckCircle2, FileUp, FlaskConical, HelpCircle, Loader2, MinusCircle, Upload } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { AlertTriangle, ArrowRight, BrainCircuit, CheckCircle2, FileUp, FlaskConical, HelpCircle, Loader2, MinusCircle, Rocket, Upload } from "lucide-react";
 import { Badge, SectionLabel } from "@/components/forge/primitives";
 import type { Tone } from "@/lib/state-meta";
 
@@ -31,15 +31,32 @@ async function analyze(filename: string, content: string): Promise<Analysis> {
 }
 
 export default function IntakePage() {
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [data, setData] = useState<Analysis | null>(null);
+  const [src, setSrc] = useState<{ filename: string; content: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   const run = async (filename: string, content: string) => {
-    setBusy(true); setErr(null);
+    setBusy(true); setErr(null); setSrc({ filename, content });
     try { setData(await analyze(filename, content)); }
     catch (e) { setErr(String(e)); }
     finally { setBusy(false); }
+  };
+
+  const createMission = async () => {
+    if (!src) return;
+    setCreating(true); setErr(null);
+    try {
+      const r = await fetch("/api/intake/create-mission", {
+        method: "POST", headers: { "Content-Type": "application/json", "X-VRA-User": "s.vega" },
+        body: JSON.stringify(src),
+      });
+      const out = await r.json();
+      if (out.created && out.incident_id) router.push(`/missions/${out.incident_id}`);
+      else { setErr(out.reason || "Could not create the mission."); setCreating(false); }
+    } catch (e) { setErr(String(e)); setCreating(false); }
   };
 
   const onFile = (file: File) => {
@@ -178,9 +195,10 @@ export default function IntakePage() {
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
               <p className="max-w-md text-[11px] text-ink-mut">{data.basis}</p>
-              <Link href="/missions" className="glow-agent inline-flex h-10 items-center gap-2 rounded-[10px] bg-agent px-4 text-sm font-semibold text-black transition-transform hover:scale-[1.02]">
-                Start verification mission <ArrowRight className="h-4 w-4" />
-              </Link>
+              <button onClick={createMission} disabled={creating}
+                className="glow-agent inline-flex h-10 items-center gap-2 rounded-[10px] bg-agent px-4 text-sm font-semibold text-black transition-transform hover:scale-[1.02] disabled:opacity-60">
+                {creating ? <><Loader2 className="h-4 w-4 animate-spin" /> Creating mission…</> : <><Rocket className="h-4 w-4" /> Create recovery mission</>}
+              </button>
             </div>
           </section>
         </>

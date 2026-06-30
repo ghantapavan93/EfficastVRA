@@ -361,6 +361,23 @@ class Incident(Base, table=True):
     historical: bool = Field(default=False, index=True)
     outcome_type: Optional[OutcomeType] = None
     outcome_summary: str = ""
+    # When a mission is created from an uploaded plant export, the intake analysis (mapping + readiness +
+    # reconstruction + provenance) is stored here so the mission carries its own origin story. Empty for
+    # alert-originated incidents.
+    intake: dict = Field(default_factory=dict, sa_type=JSON)
+
+
+class MappingProfile(Base, table=True):
+    """A reusable Plant Data Mapping Profile — how an uploaded export's columns map onto the Efficast
+    Recovery Data Contract. Persisted per plant so the next upload reuses it (operational, not one-time)."""
+
+    id: str = Field(default_factory=id_factory("MAP"), primary_key=True)
+    tenant_id: str = Field(index=True)
+    plant_id: str = Field(index=True)
+    name: str = ""
+    profile_version: str = "1.0"           # NOT Base.version (optimistic-lock int) — this is the mapping rev
+    source_filename: str = ""
+    mappings: list = Field(default_factory=list, sa_type=JSON)
 
 
 class RecoveryContract(Base, table=True):

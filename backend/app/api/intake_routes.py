@@ -7,9 +7,11 @@ this is the front of the mission funnel. Confirmed mappings + a started mission 
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
+from sqlmodel import Session
 
+from app.db import get_session
 from app.services.intake import analyze_upload
 
 router = APIRouter(prefix="/api/intake", tags=["intake"])
@@ -25,6 +27,19 @@ def analyze(body: AnalyzeBody) -> dict:
     """Analyze an uploaded plant export → proposed mapping + Data Readiness Report + incident reconstruction.
     The AI/heuristic proposes; the user confirms the mapping before a mission is created."""
     return analyze_upload(body.filename, body.content)
+
+
+@router.post("/create-mission")
+def create_mission(body: AnalyzeBody, session: Session = Depends(get_session)) -> dict:
+    """Turn an uploaded export into a live, persisted Recovery Mission: map → reconstruct → persist a
+    Mapping Profile → create a real Incident (with the intake analysis attached) → stamp a provenance audit.
+    The new mission then flows through the spine + deterministic surfaces (it has no contract/verdict yet)."""
+    from app.services.intake_mission import create_mission_from_upload
+
+    out = create_mission_from_upload(session, body.filename, body.content)
+    if out.get("created"):
+        session.commit()
+    return out
 
 
 # A deliberately *messy* Northstar export: non-canonical column names, a fault recurrence at cycle 17, and
