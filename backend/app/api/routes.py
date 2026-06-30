@@ -297,6 +297,19 @@ def evidence_plan(incident_id: str, session: Session = Depends(get_session)) -> 
     return out
 
 
+@router.get("/incidents/{incident_id}/mission-spine")
+def mission_spine(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """Recovery Mission Spine — the incident as one seven-stage mission (Intake → Reconstruction → Contract
+    → Evidence → Verification → Release Decision → Qualification Record) with where it stands, what's
+    blocking, who must act next, and why it isn't VERIFIED. Read-only projection of the existing facts."""
+    from app.services.mission_spine import assess_mission
+
+    inc = _incident(session, incident_id)
+    out = assess_mission(session, inc)
+    session.commit()
+    return out
+
+
 @router.get("/incidents/{incident_id}/comparability")
 def comparability(incident_id: str, session: Session = Depends(get_session)) -> dict:
     """Comparable-Conditions Gate — did before/after run under conditions we can responsibly compare?

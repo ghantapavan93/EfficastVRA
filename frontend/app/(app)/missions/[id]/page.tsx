@@ -16,6 +16,7 @@ import { ClosureRiskPanel } from "@/components/mission/closure-risk-panel";
 import { DispositionPanel } from "@/components/mission/disposition-panel";
 import { OeeRestorationPanel } from "@/components/mission/oee-restoration-panel";
 import { DecisionRoom } from "@/components/mission/decision-room";
+import { MissionSpine } from "@/components/mission/mission-spine";
 import { EvidencePlanner } from "@/components/mission/evidence-planner";
 import { RecoveryDebtPanel } from "@/components/mission/recovery-debt-panel";
 import { SensorTrustPanel } from "@/components/mission/sensor-trust-panel";
@@ -107,6 +108,10 @@ function MissionDetail({ id }: { id: string }) {
             ))}
           </nav>
         </div>
+      </div>
+
+      <div className="mx-auto max-w-6xl px-6 pt-6">
+        <MissionSpine incidentId={id} />
       </div>
 
       <div key={tab} className="tab-in mx-auto max-w-6xl px-6 py-6">

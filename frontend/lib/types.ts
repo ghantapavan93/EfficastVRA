@@ -652,6 +652,28 @@ export interface SensorTrustView {
   reason?: string;
 }
 
+export interface MissionStage {
+  index: number;
+  name: string;
+  status: string; // done | active | blocked | pending
+  summary: string;
+}
+export interface MissionSpineView {
+  available: boolean;
+  incident_id?: string;
+  current_index?: number;
+  current_stage?: string;
+  complete?: boolean;
+  outcome?: string;
+  can_close?: boolean;
+  reopened_count?: number;
+  what_blocks?: string;
+  who_next?: string;
+  why_not_verified?: string[];
+  stages?: MissionStage[];
+  basis?: string;
+}
+
 export interface ReleaseDomain {
   domain: string;
   status: string; // pass | blocked | insufficient | monitoring | warn

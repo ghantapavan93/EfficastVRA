@@ -117,6 +117,15 @@ export function useOeeRestoration(id: string, refetchInterval?: number) {
   });
 }
 
+export function useMissionSpine(id: string, refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({
+    queryKey: ["mission-spine", id, username],
+    queryFn: () => api.missionSpine(id),
+    refetchInterval,
+  });
+}
+
 export function useReleaseMatrix(id: string, refetchInterval?: number) {
   const { username } = useRole();
   return useQuery({
