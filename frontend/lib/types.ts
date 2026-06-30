@@ -652,6 +652,47 @@ export interface SensorTrustView {
   reason?: string;
 }
 
+export interface ReleaseDomain {
+  domain: string;
+  status: string; // pass | blocked | insufficient | monitoring | warn
+  result: string;
+  blocking_issue: string;
+  detail: string;
+}
+export interface ReleaseMatrixView {
+  available: boolean;
+  incident_id?: string;
+  reason?: string;
+  outcome?: string;
+  outcome_meaning?: string;
+  headline?: string;
+  can_close?: boolean;
+  effective_confidence?: number | null;
+  blocking_count?: number;
+  domains?: ReleaseDomain[];
+  reasons?: string[];
+  basis?: string;
+}
+export interface EvidenceRec {
+  title: string;
+  decision_impact: string; // Critical | High | Supporting
+  effort: string;
+  confidence_gain: number;
+  why: string;
+}
+export interface EvidencePlanView {
+  available: boolean;
+  incident_id?: string;
+  reason?: string;
+  outcome?: string;
+  current_confidence?: number;
+  potential_confidence?: number;
+  signature_confidence?: number | null;
+  unmet_invariants?: number;
+  recommendations?: EvidenceRec[];
+  basis?: string;
+}
+
 export interface ShadowScenarioRow {
   key: string;
   title: string;

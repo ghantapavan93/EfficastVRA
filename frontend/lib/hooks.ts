@@ -117,6 +117,24 @@ export function useOeeRestoration(id: string, refetchInterval?: number) {
   });
 }
 
+export function useReleaseMatrix(id: string, refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({
+    queryKey: ["release-matrix", id, username],
+    queryFn: () => api.releaseMatrix(id),
+    refetchInterval,
+  });
+}
+
+export function useEvidencePlan(id: string, refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({
+    queryKey: ["evidence-plan", id, username],
+    queryFn: () => api.evidencePlan(id),
+    refetchInterval,
+  });
+}
+
 export function useShadowScorecard(refetchInterval?: number) {
   return useQuery({
     queryKey: ["shadow-scorecard"],

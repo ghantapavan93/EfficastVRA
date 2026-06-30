@@ -272,6 +272,31 @@ def disposition(incident_id: str, session: Session = Depends(get_session)) -> di
     return out
 
 
+@router.get("/incidents/{incident_id}/release-matrix")
+def release_matrix(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """Recovery Decision Room — the release decision as the eight domains a plant signs off (Equipment,
+    Process, Quality, Comparability, Evidence, Freshness, Safety, Authorization), each pass/blocked with its
+    blocking issue, plus the computed outcome. Read-only; a confidence score never substitutes for a domain."""
+    from app.services.release_matrix import assess_release_matrix
+
+    inc = _incident(session, incident_id)
+    out = assess_release_matrix(session, inc)
+    session.commit()
+    return out
+
+
+@router.get("/incidents/{incident_id}/evidence-plan")
+def evidence_plan(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """Evidence Value Planner — which missing evidence would most reduce decision uncertainty, ranked by
+    decision impact, effort and estimated confidence gain. Advisory; the agent recommends, never collects."""
+    from app.services.evidence_planner import plan_evidence
+
+    inc = _incident(session, incident_id)
+    out = plan_evidence(session, inc)
+    session.commit()
+    return out
+
+
 @router.get("/incidents/{incident_id}/comparability")
 def comparability(incident_id: str, session: Session = Depends(get_session)) -> dict:
     """Comparable-Conditions Gate — did before/after run under conditions we can responsibly compare?

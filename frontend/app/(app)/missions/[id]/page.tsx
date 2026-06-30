@@ -15,6 +15,8 @@ import { RecoverySignaturePanel } from "@/components/mission/recovery-signature-
 import { ClosureRiskPanel } from "@/components/mission/closure-risk-panel";
 import { DispositionPanel } from "@/components/mission/disposition-panel";
 import { OeeRestorationPanel } from "@/components/mission/oee-restoration-panel";
+import { DecisionRoom } from "@/components/mission/decision-room";
+import { EvidencePlanner } from "@/components/mission/evidence-planner";
 import { RecoveryDebtPanel } from "@/components/mission/recovery-debt-panel";
 import { SensorTrustPanel } from "@/components/mission/sensor-trust-panel";
 import { LotAtRiskPanel } from "@/components/mission/lot-at-risk-panel";
@@ -61,6 +63,8 @@ function MissionDetail({ id }: { id: string }) {
     { key: "comparability", label: "Comparable Conditions" },
     { key: "closure-risk", label: "Closure Risk" },
     { key: "disposition", label: "Disposition" },
+    { key: "decision-room", label: "Decision Room" },
+    { key: "evidence-planner", label: "Evidence Planner" },
     { key: "oee", label: "OEE Restoration" },
     { key: "recovery-debt", label: "Recovery Debt" },
     { key: "sensor-trust", label: "Sensor Trust" },
@@ -115,6 +119,8 @@ function MissionDetail({ id }: { id: string }) {
         {tab === "comparability" && <ComparableConditionsPanel incidentId={id} />}
         {tab === "closure-risk" && <ClosureRiskPanel incidentId={id} />}
         {tab === "disposition" && <DispositionPanel incidentId={id} />}
+        {tab === "decision-room" && <DecisionRoom incidentId={id} />}
+        {tab === "evidence-planner" && <EvidencePlanner incidentId={id} />}
         {tab === "oee" && <OeeRestorationPanel incidentId={id} />}
         {tab === "recovery-debt" && <RecoveryDebtPanel incidentId={id} />}
         {tab === "sensor-trust" && <SensorTrustPanel incidentId={id} />}
