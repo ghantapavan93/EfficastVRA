@@ -7,11 +7,12 @@ this is the front of the mission funnel. Confirmed mappings + a started mission 
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlmodel import Session
 
 from app.db import get_session
+from app.domain.models import Incident
 from app.services.intake import analyze_upload
 
 router = APIRouter(prefix="/api/intake", tags=["intake"])
@@ -38,6 +39,25 @@ def create_mission(body: AnalyzeBody, session: Session = Depends(get_session)) -
 
     out = create_mission_from_upload(session, body.filename, body.content)
     if out.get("created"):
+        session.commit()
+    return out
+
+
+@router.post("/missions/{incident_id}/run-verification")
+def run_verification(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """The last mile: replay an uploaded mission's telemetry through the deterministic evaluator.
+
+    Ingests the uploaded readings, drafts a Recovery Contract via the real orchestrator, satisfies the
+    monitoring prerequisites from the uploaded data, and replays the cycles — the *deterministic evaluator*
+    renders the verdict (for the messy sample it rejects closure: F27 recurs at cycle 17 → reopened). It
+    never fabricates a quality release the upload lacks, and stops at the next human gate."""
+    from app.services.uploaded_verification import run_uploaded_verification
+
+    incident = session.get(Incident, incident_id)
+    if incident is None:
+        raise HTTPException(status_code=404, detail="mission not found")
+    out = run_uploaded_verification(session, incident)
+    if out.get("ran"):
         session.commit()
     return out
 

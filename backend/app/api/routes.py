@@ -310,6 +310,36 @@ def mission_spine(incident_id: str, session: Session = Depends(get_session)) -> 
     return out
 
 
+@router.get("/incidents/{incident_id}/twin")
+def recovery_twin(incident_id: str, session: Session = Depends(get_session)) -> dict:
+    """Recovery Twin — the recovery trajectory cycle by cycle (vibration/temperature/fault + the recomputed
+    stable-cycle streak) across every verification window, for the scrubber. Read-only replay."""
+    from app.services.recovery_twin import build_twin
+
+    inc = _incident(session, incident_id)
+    return build_twin(session, inc)
+
+
+@router.get("/assets")
+def assets(session: Session = Depends(get_session)) -> dict:
+    """Every machine with a one-line recovery footprint — the picker for the Recovery Passport."""
+    from app.services.recovery_passport import list_assets
+
+    return list_assets(session)
+
+
+@router.get("/assets/{machine_id}/passport")
+def recovery_passport(machine_id: str, session: Session = Depends(get_session)) -> dict:
+    """Recovery Passport — an asset's full verified-recovery history + lifetime stats (verified rate, reopens,
+    and the headline 'false closures caught'). Read-only projection over the asset's incidents."""
+    from app.services.recovery_passport import build_passport
+
+    out = build_passport(session, machine_id)
+    if not out.get("available"):
+        raise HTTPException(404, out.get("reason", "asset not found"))
+    return out
+
+
 @router.get("/incidents/{incident_id}/comparability")
 def comparability(incident_id: str, session: Session = Depends(get_session)) -> dict:
     """Comparable-Conditions Gate — did before/after run under conditions we can responsibly compare?

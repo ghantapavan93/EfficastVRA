@@ -142,3 +142,21 @@ system), surfaced live at `/api/security`:
   an env var — a real deployment sources it from a vault/KMS and rotates it. The SHA-256 hash chain is always on.
 - **Security-event detection** is an in-process ring + structured log (SIEM-ready), not a wired SIEM.
 - **TLS/HSTS** are deployment-stage; HSTS is off until TLS terminates at/above this service.
+
+## Uploaded-mission verification gaps (the "last mile", 2026-06-30)
+The last mile (`services/uploaded_verification.py`) replays an uploaded mission's telemetry through the real
+deterministic evaluator. Bounded honestly:
+- **Contract drafting is F27-only.** The `DeterministicReasoningProvider` always drafts the F27 conveyor
+  template (`contract_templates.build_v1_spec`), and `persist_contract` refuses a contract that can't test
+  the incident's own fault. So an upload with a **non-F27** fault is honestly declined (`ran:false`) and
+  pointed here. *Resolution:* profile-driven drafting via `services/machine_profiles.py` (E12/P09 profiles
+  already exist) so the agent drafts a contract that tests *the upload's* fault.
+- **Human gates are auto-advanced for the replay.** The contract-review approval is recorded via the seeded
+  supervisor (the operator running the replay *is* the reviewer); this mirrors the established headless demo
+  (`workflow/demo.py`). Technical evidence is **derived from the uploaded data** (provenance-stamped); a
+  pass/fail quality item the upload doesn't contain is **left missing** (an honest block), never fabricated.
+- **Shared-machine telemetry isolation.** Uploaded `TelemetrySample`s are ingested for the (shared) seeded
+  machine and any leftover after an early-ending window is reclaimed (`consumed=True`). Safe because the hero
+  is terminal; a real deployment would give each uploaded asset its own `Machine` identity. `PROTOTYPE_ASSUMPTION`.
+- **Telemetry series cap** of 5000 cycles per upload (`services/intake.build_telemetry_series`) — a prototype
+  guard, not a measured limit.

@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, BellRing, FileCheck2, FileUp, Gauge, Inbox, Lightbulb, ListChecks, ShieldCheck, Telescope, Wrench } from "lucide-react";
+import { Activity, BellRing, BookMarked, FileCheck2, FileUp, Gauge, Inbox, Lightbulb, ListChecks, ShieldCheck, Telescope, Wrench } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAlerts, useKnowledge, useMissions, useNotifications } from "@/lib/hooks";
@@ -30,6 +30,7 @@ export function NavRail() {
     { href: "/troubleshoot", icon: Wrench, label: "Troubleshoot", match: (p: string) => p === "/troubleshoot", badge: 0 },
     { href: m("evidence"), icon: ListChecks, label: "Evidence", match: () => false, badge: 0 },
     { href: m("contract"), icon: FileCheck2, label: "Approvals", match: () => false, badge: 0 },
+    { href: "/passport", icon: BookMarked, label: "Recovery Passport · asset history", match: (p: string) => p === "/passport", badge: 0 },
     { href: "/knowledge", icon: Lightbulb, label: "Knowledge", match: (p: string) => p === "/knowledge", badge: pendingKnowledge },
     { href: "/system", icon: ShieldCheck, label: "System Health", match: (p: string) => p === "/system", badge: 0 },
     { href: "/vision", icon: Telescope, label: "Future Vision", match: (p: string) => p === "/vision", badge: 0 },

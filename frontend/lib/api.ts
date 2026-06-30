@@ -34,6 +34,9 @@ import type {
   SignatureView,
   TimelineView,
   TroubleshootResult,
+  TwinView,
+  AssetsView,
+  PassportView,
 } from "./types";
 
 // The active principal's username, sent as X-VRA-User. The role provider keeps this in sync.
@@ -120,6 +123,9 @@ export const api = {
   releaseMatrix: (id: string) => req<ReleaseMatrixView>(`/api/incidents/${id}/release-matrix`),
   evidencePlan: (id: string) => req<EvidencePlanView>(`/api/incidents/${id}/evidence-plan`),
   shadowScorecard: () => req<ShadowScorecardView>(`/api/integration/shadow`),
+  twin: (id: string) => req<TwinView>(`/api/incidents/${id}/twin`),
+  assets: () => req<AssetsView>(`/api/assets`),
+  passport: (machineId: string) => req<PassportView>(`/api/assets/${machineId}/passport`),
   disposition: (id: string) => req<DispositionView>(`/api/incidents/${id}/disposition`),
   comparability: (id: string) => req<ComparabilityView>(`/api/incidents/${id}/comparability`),
   recoveryDebt: (id: string) => req<RecoveryDebtView>(`/api/incidents/${id}/recovery-debt`),

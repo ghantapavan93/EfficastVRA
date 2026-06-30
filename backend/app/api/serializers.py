@@ -198,6 +198,10 @@ def mission_detail(session: Session, incident: Incident) -> dict:
         "agent_responsibility": "Define recovery, gather evidence, observe the real trajectory, and decide closure. Never controls the machine.",
         "human_responsibility": "Perform physical work, submit measurements, and grant approvals.",
         "environment": "synthetic-demo",
+        # Upload-origin missions can be replayed through the deterministic evaluator (the last mile).
+        "from_upload": bool(getattr(incident, "intake", None)),
+        "has_contract": bool(incident.current_contract_id),
+        "telemetry_rows": len((getattr(incident, "intake", None) or {}).get("telemetry_series", [])),
     })
     return summary
 

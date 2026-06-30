@@ -161,6 +161,26 @@ export function useComparability(id: string, refetchInterval?: number) {
   });
 }
 
+export function useTwin(id: string, refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({ queryKey: ["twin", id, username], queryFn: () => api.twin(id), refetchInterval });
+}
+
+export function useAssets(refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({ queryKey: ["assets", username], queryFn: () => api.assets(), refetchInterval });
+}
+
+export function usePassport(machineId: string | null, refetchInterval?: number) {
+  const { username } = useRole();
+  return useQuery({
+    queryKey: ["passport", machineId, username],
+    queryFn: () => api.passport(machineId as string),
+    enabled: !!machineId,
+    refetchInterval,
+  });
+}
+
 export function useRecoveryDebt(id: string, refetchInterval?: number) {
   const { username } = useRole();
   return useQuery({

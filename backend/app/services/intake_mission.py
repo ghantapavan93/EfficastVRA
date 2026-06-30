@@ -21,7 +21,7 @@ from app.config import get_settings
 from app.domain.base import utcnow
 from app.domain.enums import AuditEventType, Role, Severity, WorkflowState
 from app.domain.models import Incident, Machine, MappingProfile
-from app.services.intake import analyze_upload, parse_content, propose_mapping
+from app.services.intake import analyze_upload, build_telemetry_series, parse_content, propose_mapping
 from app.workflow.audit import record_audit
 
 _settings = get_settings()
@@ -55,6 +55,7 @@ def create_mission_from_upload(session: Session, filename: str, content: str) ->
 
     machine_code = _first_value(table.rows, idx.get(("asset", "source_id")))
     fault = _first_fault(table.rows, idx.get(("machine_event", "event_code")))
+    telemetry_series = build_telemetry_series(table, mappings)
 
     # Resolve the asset: match the uploaded code, else fall back to a seeded machine in the plant.
     machine = (session.exec(select(Machine).where(Machine.code == machine_code)).first()
@@ -79,7 +80,8 @@ def create_mission_from_upload(session: Session, filename: str, content: str) ->
         fault_code=fault, severity=Severity.S2, state=WorkflowState.INTERVENTION_RECORDED,
         opened_at=utcnow(),
         intake={**analysis, "mapping_profile_id": profile.id, "source_filename": filename,
-                "detected_machine": machine_code, "detected_fault": fault},
+                "detected_machine": machine_code, "detected_fault": fault,
+                "telemetry_series": telemetry_series},
     )
     session.add(incident)
     session.flush()
@@ -106,4 +108,5 @@ def create_mission_from_upload(session: Session, filename: str, content: str) ->
         "mapping_profile_id": profile.id,
         "mapped_columns": analysis["mapped_count"],
         "row_count": analysis["row_count"],
+        "telemetry_rows": len(telemetry_series),
     }

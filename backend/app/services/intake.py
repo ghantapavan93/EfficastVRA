@@ -325,6 +325,79 @@ def reconstruct(table: ParsedTable, mappings: list[ColumnMapping]) -> dict:
     }
 
 
+# ── telemetry series (the seam to deterministic verification) ───────────────────────────────────────────
+# Signal columns recognised directly from headers (wide-format exports carry one column per signal, which
+# the long-format telemetry.metric/value mapping can't separate). These feed RecoveryObservation columns.
+_SIGNAL_SYNONYMS: dict[str, list[str]] = {
+    "vibration": ["vibration", "vibration_rms", "vib", "vib_rms", "vibration_mm_s", "rms"],
+    "temperature": ["temperature", "temp", "temp_c", "temp_f", "bearing_temp", "drive_temp", "motor_temp"],
+    "cycle_time": ["cycle_time", "cycle_time_s", "ct", "cycletime", "takt"],
+    "scrap_pct": ["scrap_pct", "scrap", "scrap_rate", "reject_rate", "defect_rate"],
+}
+_CYCLE_SYNONYMS = ["cycle_index", "cycle_no", "cycle_number", "cycle", "cycle_count", "seq"]
+_FAULT_SYNONYMS = ["fault", "fault_code", "alarm", "alarm_code", "event_code", "code", "error", "error_code"]
+_FAULT_NULLS = {"", "none", "ok", "0", "nan", "null", "false", "no", "n"}
+
+
+def _match_col(columns: list[str], syns: list[str]) -> Optional[str]:
+    norms = {c: _norm(c) for c in columns}
+    for c, cn in norms.items():  # exact first
+        if cn in syns:
+            return c
+    for c, cn in norms.items():  # then substring
+        if any(s in cn or cn in s for s in syns):
+            return c
+    return None
+
+
+def _num(v) -> Optional[float]:
+    try:
+        return float(str(v).replace(",", "").strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def build_telemetry_series(table: ParsedTable, mappings: list[ColumnMapping], *, cap: int = 5000) -> list[dict]:
+    """Per-cycle signal readings extracted from the upload — the data the deterministic evaluator replays.
+
+    Honours the confirmed mapping for cycle index / fault / timestamp, and detects wide-format signal
+    columns (vibration/temperature/cycle_time/scrap) directly. Ordered by cycle index, else timestamp,
+    else row order. This is what lets the *same* evaluator that runs the synthetic demo verify recovery
+    on the user's own telemetry."""
+    idx = {(m.target_event, m.target_field): m.column for m in mappings if m.target_event}
+    sig_cols = {sig: _match_col(table.columns, syns) for sig, syns in _SIGNAL_SYNONYMS.items()}
+    cyc_col = idx.get(("production_cycle", "cycle_index")) or _match_col(table.columns, _CYCLE_SYNONYMS)
+    fault_col = idx.get(("machine_event", "event_code")) or _match_col(table.columns, _FAULT_SYNONYMS)
+    tcol = idx.get(("event", "source_timestamp"))
+
+    def cyc_of(r: dict) -> Optional[int]:
+        v = _num(r.get(cyc_col)) if cyc_col else None
+        return int(v) if v is not None else None
+
+    rows = list(table.rows)
+    if cyc_col:
+        rows.sort(key=lambda r: cyc_of(r) if cyc_of(r) is not None else 0)
+    elif tcol:
+        rows.sort(key=lambda r: _parse_ts(r.get(tcol, "")) or datetime.min)
+
+    series: list[dict] = []
+    for i, r in enumerate(rows[:cap], start=1):
+        fault = None
+        if fault_col:
+            raw = str(r.get(fault_col, "")).strip()
+            if raw and raw.lower() not in _FAULT_NULLS:
+                fault = raw
+        series.append({
+            "cycle": cyc_of(r) if cyc_col else i,
+            "vibration": _num(r.get(sig_cols["vibration"])) if sig_cols["vibration"] else None,
+            "temperature": _num(r.get(sig_cols["temperature"])) if sig_cols["temperature"] else None,
+            "cycle_time": _num(r.get(sig_cols["cycle_time"])) if sig_cols["cycle_time"] else None,
+            "scrap_pct": _num(r.get(sig_cols["scrap_pct"])) if sig_cols["scrap_pct"] else None,
+            "fault": fault,
+        })
+    return series
+
+
 # ── orchestration ───────────────────────────────────────────────────────────────────────────────────────
 def analyze_upload(filename: str, content: str) -> dict:
     """One call: parse → propose mapping → readiness → reconstruct. The user confirms the mapping next."""

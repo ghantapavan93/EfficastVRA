@@ -17,6 +17,8 @@ import { DispositionPanel } from "@/components/mission/disposition-panel";
 import { OeeRestorationPanel } from "@/components/mission/oee-restoration-panel";
 import { DecisionRoom } from "@/components/mission/decision-room";
 import { MissionSpine } from "@/components/mission/mission-spine";
+import { UploadedVerification } from "@/components/mission/uploaded-verification";
+import { RecoveryTwin } from "@/components/mission/recovery-twin";
 import { EvidencePlanner } from "@/components/mission/evidence-planner";
 import { RecoveryDebtPanel } from "@/components/mission/recovery-debt-panel";
 import { SensorTrustPanel } from "@/components/mission/sensor-trust-panel";
@@ -61,6 +63,7 @@ function MissionDetail({ id }: { id: string }) {
     { key: "decision", label: "Decision Intelligence" },
     { key: "reliability", label: "Recovery Confidence" },
     { key: "signature", label: "Recovery Signature" },
+    { key: "twin", label: "Recovery Twin" },
     { key: "comparability", label: "Comparable Conditions" },
     { key: "closure-risk", label: "Closure Risk" },
     { key: "disposition", label: "Disposition" },
@@ -110,7 +113,8 @@ function MissionDetail({ id }: { id: string }) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-6 pt-6">
+      <div className="mx-auto max-w-6xl space-y-5 px-6 pt-6">
+        <UploadedVerification id={id} m={m} onDone={() => refetch()} />
         <MissionSpine incidentId={id} />
       </div>
 
@@ -121,6 +125,7 @@ function MissionDetail({ id }: { id: string }) {
         {tab === "decision" && <DecisionPanel incidentId={id} />}
         {tab === "reliability" && <ReliabilityPanel incidentId={id} />}
         {tab === "signature" && <RecoverySignaturePanel incidentId={id} />}
+        {tab === "twin" && <RecoveryTwin incidentId={id} />}
         {tab === "comparability" && <ComparableConditionsPanel incidentId={id} />}
         {tab === "closure-risk" && <ClosureRiskPanel incidentId={id} />}
         {tab === "disposition" && <DispositionPanel incidentId={id} />}

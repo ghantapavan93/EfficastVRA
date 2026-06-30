@@ -65,6 +65,115 @@ export interface MissionDetail extends MissionSummary {
   agent_responsibility: string;
   human_responsibility: string;
   environment: string;
+  from_upload: boolean;
+  has_contract: boolean;
+  telemetry_rows: number;
+}
+
+export interface TwinFrame {
+  index: number;
+  window: number;
+  cycle: number;
+  vibration: number | null;
+  temperature: number | null;
+  cycle_time: number | null;
+  scrap_pct: number | null;
+  fault_code: string | null;
+  bearing_precursor: number | null;
+  stable: boolean;
+  stable_streak: number;
+  source: string;
+  at: string | null;
+}
+
+export interface TwinMarker {
+  index: number;
+  window: number;
+  cycle: number;
+  kind: "relapse" | "window_complete";
+  label: string;
+}
+
+export interface TwinView {
+  available: boolean;
+  reason?: string;
+  incident_id?: string;
+  required_stable_cycles?: number;
+  thresholds?: { vibration_max: number | null; vibration_baseline: number | null; temperature_baseline: number | null };
+  frames?: TwinFrame[];
+  markers?: TwinMarker[];
+  final_streak?: number;
+  reopened_count?: number;
+  state?: string;
+  summary?: string;
+  basis?: string;
+}
+
+export interface AssetSummary {
+  id: string;
+  code: string;
+  name: string;
+  machine_model: string;
+  mission_count: number;
+  false_closures_caught: number;
+  verified: number;
+  active: number;
+}
+
+export interface AssetsView {
+  assets: AssetSummary[];
+}
+
+export interface PassportEntry {
+  id: string;
+  title: string;
+  fault_code: string | null;
+  severity: string;
+  state: string;
+  outcome: string | null;
+  outcome_summary: string | null;
+  reopened_count: number;
+  false_closure_caught: boolean;
+  from_upload: boolean;
+  historical: boolean;
+  is_active: boolean;
+  opened_at: string | null;
+  closed_at: string | null;
+  duration_hours: number | null;
+}
+
+export interface PassportView {
+  available: boolean;
+  machine: { id: string; code: string; name: string; machine_model: string; manufacturer: string; state: string; baseline: Record<string, number>; live: Record<string, unknown> };
+  stats: {
+    total_missions: number;
+    verified: number;
+    verified_rate: number;
+    reopened_missions: number;
+    reopens_total: number;
+    false_closures_caught: number;
+    insufficient: number;
+    escalated: number;
+    active_missions: number;
+    from_upload: number;
+    mean_time_to_outcome_hours: number | null;
+  };
+  entries: PassportEntry[];
+  basis: string;
+}
+
+export interface UploadedVerificationResult {
+  ran: boolean;
+  reason?: string;
+  outcome?: "reopened" | "verified" | "insufficient_evidence" | "escalated" | "monitoring" | "blocked";
+  state?: string;
+  contract_id?: string;
+  telemetry_rows?: number;
+  cycles_replayed?: number;
+  stable_streak?: number;
+  relapse_cycle?: number | null;
+  verdict_by?: string;
+  message?: string;
 }
 
 export type ConditionStatus =
